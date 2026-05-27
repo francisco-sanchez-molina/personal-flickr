@@ -543,12 +543,55 @@ function Lightbox({
   const isFav = photo.is_favorite === 1;
   const [developOpen, setDevelopOpen] = useState(false);
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   // The TransformWrapper handles pinch + pan + double-tap zoom internally.
   // We track `scale` in state so we can:
   //   - disable library panning at scale=1 (lets swipe-to-navigate pass through)
   //   - skip swipe-navigation when zoomed in (so single-finger drag pans)
   const [scale, setScale] = useState(1);
   const transformRef = useRef<ReactZoomPanPinchRef>(null);
+
+  // Sync state with the browser's Fullscreen API. The user can also exit
+  // fullscreen via the OS (Esc, the macOS green-button menu, etc.) so we
+  // listen instead of trusting our own toggle.
+  useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.();
+    } else {
+      void containerRef.current?.requestFullscreen?.().catch((err) => {
+        console.warn("requestFullscreen failed", err);
+      });
+    }
+  }, []);
+
+  // Keyboard: "f" toggles fullscreen while the lightbox is open.
+  // Skip when any contenteditable / input is focused so users can still type.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "f" && e.key !== "F") return;
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        t?.isContentEditable
+      )
+        return;
+      e.preventDefault();
+      toggleFullscreen();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toggleFullscreen]);
 
   // Swipe state for navigation (only active at scale === 1).
   const [dragX, setDragX] = useState(0);
@@ -633,6 +676,7 @@ function Lightbox({
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 z-30 flex flex-col bg-black/95"
       onClick={(e) => {
         // Only close on background click (target is this div), not on inner clicks
@@ -697,6 +741,54 @@ function Lightbox({
             className="rounded-md px-3 py-1 text-red-400 hover:bg-red-500/10"
           >
             Eliminar
+          </button>
+          <button
+            onClick={toggleFullscreen}
+            className="rounded-md px-3 py-1 hover:bg-neutral-800"
+            title={
+              isFullscreen
+                ? "Salir de pantalla completa (F)"
+                : "Pantalla completa (F)"
+            }
+            aria-pressed={isFullscreen}
+          >
+            {isFullscreen ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+                <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
+                <path d="M3 16h3a2 2 0 0 1 2 2v3" />
+                <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+                <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+                <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+                <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+              </svg>
+            )}
           </button>
           <button
             onClick={onClose}
