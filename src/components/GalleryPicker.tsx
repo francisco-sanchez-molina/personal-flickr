@@ -16,10 +16,11 @@ export default function GalleryPicker({
   const [all, setAll] = useState<Gallery[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Visual hint while a PUT is in flight (subtle, no blocking spinner)
+  const [pendingId, setPendingId] = useState<number | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Load all galleries + the ones this photo belongs to
@@ -57,13 +58,44 @@ export default function GalleryPicker({
     return () => document.removeEventListener("mousedown", onClick);
   }, [onClose]);
 
-  const toggle = (id: number) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  /**
+   * Toggle a gallery membership. Optimistic: flip state immediately, then
+   * PUT the new full snapshot. Reverts on failure.
+   */
+  const persistSet = async (next: Set<number>) => {
+    setError(null);
+    try {
+      const res = await fetch(`/api/photos/${photoId}/galleries`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ gallery_ids: Array.from(next) }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? body.error ?? "error");
+      }
+    } catch (e: unknown) {
+      throw e instanceof Error ? e : new Error(String(e));
+    }
+  };
+
+  const toggle = async (id: number) => {
+    const prev = selected;
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+
+    setSelected(next);
+    setPendingId(id);
+    try {
+      await persistSet(next);
+    } catch (e: unknown) {
+      // Revert
+      setSelected(prev);
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPendingId((cur) => (cur === id ? null : cur));
+    }
   };
 
   const createNew = async () => {
@@ -78,33 +110,27 @@ export default function GalleryPicker({
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
+
+      const newId: number = body.gallery.id;
+      const next = new Set([...selected, newId]);
       setAll((g) => [body.gallery, ...g]);
-      setSelected((s) => new Set([...s, body.gallery.id]));
+      setSelected(next);
       setNewName("");
       setCreating(false);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/photos/${photoId}/galleries`, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ gallery_ids: Array.from(selected) }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail ?? body.error ?? "error");
+      // Persist the new membership immediately
+      setPendingId(newId);
+      try {
+        await persistSet(next);
+      } catch (e: unknown) {
+        // The gallery was created, just the photo membership failed.
+        // Revert membership only.
+        setSelected(selected);
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setPendingId((cur) => (cur === newId ? null : cur));
       }
-      onClose();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -119,6 +145,7 @@ export default function GalleryPicker({
         <button
           onClick={onClose}
           className="text-neutral-500 hover:text-neutral-100"
+          aria-label="Cerrar"
         >
           ✕
         </button>
@@ -133,19 +160,27 @@ export default function GalleryPicker({
           </p>
         ) : (
           <ul className="space-y-0.5">
-            {all.map((g) => (
-              <li key={g.id}>
-                <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-neutral-900">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(g.id)}
-                    onChange={() => toggle(g.id)}
-                    className="accent-pink-500"
-                  />
-                  <span className="truncate">{g.name}</span>
-                </label>
-              </li>
-            ))}
+            {all.map((g) => {
+              const isPending = pendingId === g.id;
+              return (
+                <li key={g.id}>
+                  <label
+                    className={[
+                      "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-neutral-900",
+                      isPending ? "opacity-60" : "",
+                    ].join(" ")}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(g.id)}
+                      onChange={() => toggle(g.id)}
+                      className="accent-pink-500"
+                    />
+                    <span className="truncate">{g.name}</span>
+                  </label>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -180,6 +215,7 @@ export default function GalleryPicker({
                 setNewName("");
               }}
               className="px-1 text-neutral-500 hover:text-neutral-100"
+              aria-label="Cancelar"
             >
               ✕
             </button>
@@ -199,22 +235,6 @@ export default function GalleryPicker({
           {error}
         </p>
       )}
-
-      <div className="flex justify-end gap-2 border-t border-neutral-800 px-2 py-2">
-        <button
-          onClick={onClose}
-          className="rounded-md px-3 py-1 text-sm text-neutral-400 hover:bg-neutral-900"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={save}
-          disabled={saving || loading}
-          className="rounded-md bg-pink-500 px-3 py-1 text-sm font-medium text-white hover:bg-pink-600 disabled:opacity-50"
-        >
-          {saving ? "Guardando…" : "Guardar"}
-        </button>
-      </div>
     </div>
   );
 }
