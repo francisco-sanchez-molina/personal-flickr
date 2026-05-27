@@ -974,9 +974,15 @@ a {
 
 .lb-stage {
   position: relative;
-  display: block; /* canvas takes full width; .lb-side overlays on top */
+  display: grid;
+  grid-template-columns: 1fr;
   min-height: 0;
   overflow: hidden;
+}
+/* When the info panel is open, give it a real column so the photo doesn't
+   sit underneath the EXIF text. */
+.lb-stage.with-info {
+  grid-template-columns: 1fr 320px;
 }
 .lb-canvas {
   position: relative;
@@ -1031,21 +1037,14 @@ a {
   right: 18px;
 }
 
-/* Side panel overlays the right of the canvas instead of taking a grid column,
-   so the photo stays centered in the full viewport when the panel is open. */
+/* Side panel sits in the .lb-stage grid as a 320px column when info is open.
+   Doesn't overlap the canvas — the photo simply gets less width when expanded. */
 .lb-side {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 380px;
+  width: 320px;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
   overflow-y: auto;
-  background: rgba(8, 8, 10, 0.78);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: rgba(8, 8, 10, 0.7);
   animation: slideUp 0.25s var(--ease);
-  z-index: 2;
 }
 .lb-side .sec {
   padding: 20px 24px;
@@ -1250,6 +1249,30 @@ a {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   pointer-events: none;
+}
+
+/* Fullscreen mode: strip all chrome, show just the photo. The container is
+   the one that requested the Fullscreen API, so the OS hides browser UI too.
+   Click anywhere or press Esc/F to exit. */
+.lb.is-fullscreen {
+  grid-template-rows: 1fr;
+}
+.lb.is-fullscreen .lb-top,
+.lb.is-fullscreen .lb-strip,
+.lb.is-fullscreen .lb-hint,
+.lb.is-fullscreen .lb-side,
+.lb.is-fullscreen .lb-nav {
+  display: none;
+}
+.lb.is-fullscreen .lb-stage {
+  grid-template-columns: 1fr !important;
+}
+.lb.is-fullscreen .lb-canvas {
+  padding: 0;
+}
+.lb.is-fullscreen .lb-canvas img {
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* ───────────────────────── Edit panel (Revelar) ───────────────────────── */
@@ -1902,8 +1925,7 @@ input[type="range"]::-moz-range-thumb {
     display: none;
   }
   .lb-hint {
-    bottom: 10px;
-    font-size: 9.5px;
+    display: none;
   }
   .modal-card {
     border-radius: 18px;

@@ -523,7 +523,9 @@ function Lightbox({
   const [developOpen, setDevelopOpen] = useState(false);
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showInfo, setShowInfo] = useState(true);
+  // Info panel closed by default — the photo gets full canvas. User toggles
+  // it with the "i" button / I key.
+  const [showInfo, setShowInfo] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const galleryButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -635,7 +637,10 @@ function Lightbox({
   };
 
   return (
-    <div ref={containerRef} className="lb">
+    <div
+      ref={containerRef}
+      className={`lb${isFullscreen ? " is-fullscreen" : ""}`}
+    >
       <header className="lb-top">
         <div style={{ minWidth: 0 }}>
           <div className="filename">{photo.name}</div>
@@ -719,7 +724,7 @@ function Lightbox({
         </div>
       </header>
 
-      <div className="lb-stage">
+      <div className={`lb-stage${showInfo ? " with-info" : ""}`}>
         <div
           className="lb-canvas"
           onPointerDown={onPointerDown}
@@ -754,19 +759,24 @@ function Lightbox({
                 wrapperStyle={{
                   width: "100%",
                   height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                   cursor: isZoomed ? "grab" : "default",
                 }}
-                /* No contentStyle override: lib's fit-content sizes the
-                   content to the img's intrinsic dimensions, and the img's
-                   own max-width/max-height (CSS) cap it to the viewport. */
+                contentStyle={{ width: "100%", height: "100%" }}
               >
+                {/* width/height 100% gives the <img> a definite box so
+                    object-fit can letterbox the picture preserving its
+                    aspect ratio — this also forces the lib's flex content
+                    to lay out the image at the center of its container. */}
                 <img
                   src={photoUrl(photo)}
                   alt={photo.name}
                   draggable={false}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    display: "block",
+                  }}
                 />
               </TransformComponent>
             </TransformWrapper>
