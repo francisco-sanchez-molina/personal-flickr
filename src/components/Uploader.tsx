@@ -28,7 +28,17 @@ function uid() {
   return Math.random().toString(36).slice(2);
 }
 
-export default function Uploader() {
+interface UploaderProps {
+  /** If set, every uploaded photo is auto-added to this gallery. */
+  defaultGalleryId?: number;
+  /** Pretty name for the chip shown in the dropzone. */
+  defaultGalleryName?: string;
+}
+
+export default function Uploader({
+  defaultGalleryId,
+  defaultGalleryName,
+}: UploaderProps = {}) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,8 +80,27 @@ export default function Uploader() {
 
         if (res.ok) {
           update(item.id, { status: "done", progress: 1 });
+          const photo = res.body.photo as UploadedPhoto;
+
+          // If we're uploading inside a gallery, auto-add the photo to it.
+          // We don't block the success state on this — it's a non-critical
+          // best-effort call; failures get logged but don't error the upload.
+          if (defaultGalleryId != null) {
+            try {
+              await fetch(`/api/galleries/${defaultGalleryId}/photos`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ photo_ids: [photo.id] }),
+              });
+            } catch (err) {
+              console.warn("auto-add to gallery failed", err);
+            }
+          }
+
           window.dispatchEvent(
-            new CustomEvent<UploadedPhoto>("photo:added", { detail: res.body.photo }),
+            new CustomEvent("photo:added", {
+              detail: { photo, galleryId: defaultGalleryId ?? null },
+            }),
           );
         } else if (res.status === 409 && res.body?.error === "name_conflict") {
           update(item.id, {
@@ -86,7 +115,7 @@ export default function Uploader() {
         update(item.id, { status: "error", error: String(e?.message ?? e) });
       }
     },
-    [update],
+    [update, defaultGalleryId],
   );
 
   const enqueue = useCallback(
@@ -142,6 +171,12 @@ export default function Uploader() {
 
   return (
     <section className="space-y-4">
+      {defaultGalleryId != null && defaultGalleryName && (
+        <div className="rounded-md border border-pink-500/30 bg-pink-500/5 px-3 py-2 text-sm text-pink-200">
+          <span className="text-pink-400">→</span> Las fotos que subas se
+          añadirán a <strong className="font-medium">{defaultGalleryName}</strong>
+        </div>
+      )}
       <div
         onDragOver={(e) => {
           e.preventDefault();

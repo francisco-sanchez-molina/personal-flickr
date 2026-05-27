@@ -175,11 +175,13 @@ export default function Gallery({
   }, [active, photos, selected.size, clearSelection]);
 
   useEffect(() => {
-    // Newly-uploaded photos only enter the "all photos" view, not a
-    // gallery-filtered view (they aren't in this gallery yet).
-    if (galleryId != null) return;
     const onAdded = (e: Event) => {
-      const photo = (e as CustomEvent<Photo>).detail;
+      const detail = (e as CustomEvent<{ photo: Photo; galleryId: number | null }>)
+        .detail;
+      // In a gallery-filtered view, only add photos that were uploaded
+      // INTO this gallery. In the main view, take every photo.
+      if (galleryId != null && detail.galleryId !== galleryId) return;
+      const photo = detail.photo;
       setPhotos((p) => {
         // dedupe by name (in case of replace)
         const filtered = p.filter((x) => x.name !== photo.name);

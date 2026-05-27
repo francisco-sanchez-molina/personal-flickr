@@ -2,6 +2,7 @@
 import Base from "~/layouts/Base.astro";
 import Gallery from "~/components/Gallery.tsx";
 import GalleryHeader from "~/components/GalleryHeader.tsx";
+import Uploader from "~/components/Uploader.tsx";
 import { galleryQueries } from "~/lib/db";
 
 const slug = Astro.params.slug;
@@ -24,6 +25,12 @@ const photos = galleryQueries.photosOf(gallery.id);
     </nav>
 
     <GalleryHeader client:load gallery={gallery} initialPhotoCount={photos.length} />
+
+    <Uploader
+      client:load
+      defaultGalleryId={gallery.id}
+      defaultGalleryName={gallery.name}
+    />
 
     <Gallery client:load initial={photos} galleryId={gallery.id} />
   </div>
