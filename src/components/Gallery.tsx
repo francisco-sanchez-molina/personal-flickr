@@ -10,6 +10,7 @@ import DevelopPanel, {
 } from "./DevelopPanel";
 import GalleryPicker from "./GalleryPicker";
 import BulkActionBar from "./BulkActionBar";
+import LightboxInfo from "./LightboxInfo";
 import { Icons } from "./icons";
 
 interface Photo {
@@ -24,6 +25,16 @@ interface Photo {
   has_base: number;
   original_ext: string | null;
   is_favorite: number;
+  // EXIF (any may be null)
+  camera: string | null;
+  lens: string | null;
+  fstop: number | null;
+  shutter: string | null;
+  iso: number | null;
+  focal: number | null;
+  taken_at: number | null;
+  gps_lat: number | null;
+  gps_lng: number | null;
 }
 
 function parseDevelopParams(json: string | null): DevelopParams {
@@ -512,6 +523,7 @@ function Lightbox({
   const [developOpen, setDevelopOpen] = useState(false);
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showInfo, setShowInfo] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const galleryButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -546,12 +558,17 @@ function Lightbox({
   }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "f" && e.key !== "F") return;
       const t = e.target as HTMLElement | null;
       const tag = t?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
-      e.preventDefault();
-      toggleFullscreen();
+      const k = e.key.toLowerCase();
+      if (k === "f") {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (k === "i") {
+        e.preventDefault();
+        setShowInfo((v) => !v);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -666,6 +683,14 @@ function Lightbox({
             <Icons.Trash size={14} /> Eliminar
           </button>
           <button
+            className={`iconbtn${showInfo ? " active" : ""}`}
+            onClick={() => setShowInfo((v) => !v)}
+            title="Info (I)"
+            aria-pressed={showInfo}
+          >
+            <Icons.Info size={15} />
+          </button>
+          <button
             className="iconbtn"
             onClick={toggleFullscreen}
             title={
@@ -753,10 +778,11 @@ function Lightbox({
 
           {!isZoomed && (
             <div className="lb-hint">
-              pellizca o doble-tap para zoom · ← → cambia · F pantalla completa
+              pellizca o doble-tap para zoom · ← → cambia · I info · F pantalla completa
             </div>
           )}
         </div>
+        {showInfo && <LightboxInfo photo={photo} />}
       </div>
 
       <div className="lb-strip">

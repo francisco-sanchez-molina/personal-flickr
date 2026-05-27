@@ -40,6 +40,21 @@ addColumnIfMissing("photos", "is_favorite", "INTEGER NOT NULL DEFAULT 0");
 db.exec(
   `CREATE INDEX IF NOT EXISTS idx_photos_favorite ON photos(is_favorite, uploaded_at DESC)`,
 );
+
+// EXIF columns (added 2026-05 — backfill via /api/photos/backfill-exif)
+addColumnIfMissing("photos", "camera", "TEXT");
+addColumnIfMissing("photos", "lens", "TEXT");
+addColumnIfMissing("photos", "fstop", "REAL");
+addColumnIfMissing("photos", "shutter", "TEXT");
+addColumnIfMissing("photos", "iso", "INTEGER");
+addColumnIfMissing("photos", "focal", "REAL");
+addColumnIfMissing("photos", "taken_at", "INTEGER");
+addColumnIfMissing("photos", "gps_lat", "REAL");
+addColumnIfMissing("photos", "gps_lng", "REAL");
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_photos_camera ON photos(camera);
+   CREATE INDEX IF NOT EXISTS idx_photos_taken_at ON photos(taken_at DESC);`,
+);
 // Backfill developed_at = uploaded_at for old rows
 db.exec(
   `UPDATE photos SET developed_at = uploaded_at WHERE developed_at = 0`,
@@ -86,6 +101,16 @@ export interface Photo {
   original_ext: string | null;
   /** 1 = user-marked favorite. */
   is_favorite: number;
+  // EXIF (any may be null on legacy rows or files without metadata)
+  camera: string | null;
+  lens: string | null;
+  fstop: number | null;
+  shutter: string | null;
+  iso: number | null;
+  focal: number | null;
+  taken_at: number | null;
+  gps_lat: number | null;
+  gps_lng: number | null;
 }
 
 const stmts = {
@@ -97,14 +122,29 @@ const stmts = {
   insert: db.prepare(
     `INSERT INTO photos
        (name, mime, width, height, size_bytes, uploaded_at,
-        developed_at, develop_params, has_base, original_ext)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        developed_at, develop_params, has_base, original_ext,
+        camera, lens, fstop, shutter, iso, focal, taken_at, gps_lat, gps_lng)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ),
   updateForReplace: db.prepare(
     `UPDATE photos
        SET mime = ?, width = ?, height = ?, size_bytes = ?, uploaded_at = ?,
-           developed_at = ?, develop_params = ?, has_base = ?, original_ext = ?
+           developed_at = ?, develop_params = ?, has_base = ?, original_ext = ?,
+           camera = ?, lens = ?, fstop = ?, shutter = ?, iso = ?, focal = ?,
+           taken_at = ?, gps_lat = ?, gps_lng = ?
      WHERE name = ?`,
+  ),
+  updateExif: db.prepare(
+    `UPDATE photos
+       SET camera = ?, lens = ?, fstop = ?, shutter = ?, iso = ?, focal = ?,
+           taken_at = ?, gps_lat = ?, gps_lng = ?
+     WHERE id = ?`,
+  ),
+  listMissingExif: db.prepare<[], Photo>(
+    `SELECT * FROM photos
+     WHERE camera IS NULL AND lens IS NULL AND iso IS NULL
+       AND fstop IS NULL AND taken_at IS NULL`,
   ),
   updateDevelop: db.prepare(
     `UPDATE photos
@@ -144,6 +184,15 @@ export interface PhotoUpsert {
   develop_params: string | null;
   has_base: number;
   original_ext: string | null;
+  camera: string | null;
+  lens: string | null;
+  fstop: number | null;
+  shutter: string | null;
+  iso: number | null;
+  focal: number | null;
+  taken_at: number | null;
+  gps_lat: number | null;
+  gps_lng: number | null;
 }
 
 export const photoQueries = {
@@ -162,6 +211,15 @@ export const photoQueries = {
       p.develop_params,
       p.has_base,
       p.original_ext,
+      p.camera,
+      p.lens,
+      p.fstop,
+      p.shutter,
+      p.iso,
+      p.focal,
+      p.taken_at,
+      p.gps_lat,
+      p.gps_lng,
     );
     return Number(r.lastInsertRowid);
   },
@@ -176,9 +234,46 @@ export const photoQueries = {
       p.develop_params,
       p.has_base,
       p.original_ext,
+      p.camera,
+      p.lens,
+      p.fstop,
+      p.shutter,
+      p.iso,
+      p.focal,
+      p.taken_at,
+      p.gps_lat,
+      p.gps_lng,
       p.name,
     );
   },
+  updateExif: (
+    id: number,
+    e: {
+      camera: string | null;
+      lens: string | null;
+      fstop: number | null;
+      shutter: string | null;
+      iso: number | null;
+      focal: number | null;
+      taken_at: number | null;
+      gps_lat: number | null;
+      gps_lng: number | null;
+    },
+  ) => {
+    stmts.updateExif.run(
+      e.camera,
+      e.lens,
+      e.fstop,
+      e.shutter,
+      e.iso,
+      e.focal,
+      e.taken_at,
+      e.gps_lat,
+      e.gps_lng,
+      id,
+    );
+  },
+  listMissingExif: () => stmts.listMissingExif.all(),
   updateDevelop: (
     id: number,
     width: number,

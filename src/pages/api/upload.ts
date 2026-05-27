@@ -3,6 +3,7 @@ import path from "node:path";
 import type { APIRoute } from "astro";
 import { paths } from "~/lib/config";
 import { photoQueries } from "~/lib/db";
+import { extractExif, EMPTY_EXIF } from "~/lib/exif";
 import {
   DEFAULT_DEVELOP,
   applyDevelop,
@@ -92,6 +93,9 @@ export const POST: APIRoute = async ({ request }) => {
   await fs.writeFile(tmpFile, buf);
 
   try {
+    // 0. EXIF — best-effort. If the file has none, we get all-nulls.
+    const exif = await extractExif(buf).catch(() => ({ ...EMPTY_EXIF }));
+
     // 1. Extract the base JPEG (camera preview for RAW; original bytes otherwise)
     const base = await extractBaseJpeg(tmpFile, ext);
 
@@ -123,6 +127,15 @@ export const POST: APIRoute = async ({ request }) => {
         : JSON.stringify(developParams),
       has_base: keepBase ? 1 : 0,
       original_ext: ext.toLowerCase() || null,
+      camera: exif.camera,
+      lens: exif.lens,
+      fstop: exif.fstop,
+      shutter: exif.shutter,
+      iso: exif.iso,
+      focal: exif.focal,
+      taken_at: exif.taken_at,
+      gps_lat: exif.gps_lat,
+      gps_lng: exif.gps_lng,
     };
     if (collides && decision === "replace") {
       photoQueries.upsertReplace(meta);

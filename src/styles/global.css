@@ -1044,6 +1044,64 @@ a {
   font-weight: 500;
 }
 
+/* EXIF grid inside the info sidebar */
+.exif-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+}
+.exif-grid .k {
+  font: 10px var(--f-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(245, 243, 238, 0.45);
+  margin-bottom: 3px;
+}
+.exif-grid .v {
+  font-size: 14px;
+  color: #f5f3ee;
+}
+.exif-grid .v.m,
+.exif-grid .v .m {
+  font-family: var(--f-mono);
+  font-size: 13px;
+}
+
+/* Stylized location map */
+.map {
+  position: relative;
+  height: 160px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0e0e11;
+  color: var(--ink-2);
+}
+.map svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.map .pin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 0 8px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.map .lab {
+  position: absolute;
+  left: 14px;
+  bottom: 10px;
+  font: 11px var(--f-mono);
+  color: rgba(245, 243, 238, 0.7);
+  letter-spacing: 0.04em;
+}
+
 .lb-strip {
   padding: 12px 24px;
   display: flex;
