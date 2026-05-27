@@ -195,6 +195,11 @@ export const Icons = {
       <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" />
     </S>
   ),
+  Menu: (p: IconProps) => (
+    <S {...p}>
+      <path d="M3 6h18M3 12h18M3 18h18" />
+    </S>
+  ),
   RotL: (p: IconProps) => (
     <S {...p}>
       <path d="M3 12a9 9 0 1 0 3-6.7" />

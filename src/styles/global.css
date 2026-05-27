@@ -1589,6 +1589,100 @@ input[type="range"]::-moz-range-thumb {
   color: var(--ink);
 }
 
+/* The hamburger menu trigger lives in the topbar but only shows on mobile. */
+.topbar .menu-toggle {
+  display: none;
+}
+
+/* ───────────────────────── Mobile menu drawer ───────────────────────── */
+.mobile-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.mobile-menu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(320px, 86vw);
+  background: var(--surface);
+  border-left: 1px solid var(--line-2);
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: mmSlideIn 0.22s var(--ease);
+  overflow-y: auto;
+}
+@keyframes mmSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.mm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.mm-nav,
+.mm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mm-section h5 {
+  margin: 4px 12px 6px;
+  font: 10px var(--f-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.mm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--ink-2);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: 0.15s;
+  font-family: var(--f-ui);
+}
+.mm-item:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.mm-item.on {
+  color: var(--ink);
+  background: var(--bg-2);
+  position: relative;
+}
+.mm-item.on::after {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
 /* ───────────────────────── Responsive ───────────────────────── */
 @media (max-width: 720px) {
   :root {
@@ -1604,21 +1698,25 @@ input[type="range"]::-moz-range-thumb {
     padding: 20px 16px 100px !important;
     max-width: none;
   }
-  /* Topbar collapses on mobile: wrap to two rows, hide labels, icon-only buttons */
+  /* Topbar stays a single compact row on mobile */
   .topbar {
     padding: 10px 12px;
     min-height: auto;
-    flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
+    flex-wrap: nowrap;
   }
   .topbar .lbl-d {
     display: none;
   }
+  /* breadcrumb / page-title hidden on mobile — drawer has nav, page has H2 */
+  .topbar .topbar-breadcrumb {
+    display: none;
+  }
   .topbar .search {
-    order: 3;
-    flex: 1 1 100%;
+    flex: 1 1 auto;
+    min-width: 0;
     max-width: none;
-    padding: 8px 12px;
+    padding: 7px 10px;
   }
   .topbar .search input {
     font-size: 13px;
@@ -1631,19 +1729,14 @@ input[type="range"]::-moz-range-thumb {
     display: none;
   }
   .topbar .btn {
-    padding: 7px 10px;
+    padding: 7px 9px;
     font-size: 12px;
   }
   .topbar .btn.primary {
-    padding: 8px 10px;
+    padding: 7px 9px;
   }
-  .topbar > .row:first-child {
-    order: 1;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  .topbar > .row:first-child .serif {
-    font-size: 16px;
+  .topbar .menu-toggle {
+    display: grid;
   }
 
   .hero {

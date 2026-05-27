@@ -1,15 +1,26 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icons } from "./icons";
+import MobileMenu from "./MobileMenu";
 
 interface Props {
   /** Optional breadcrumb shown on the left of the topbar. */
   title?: string;
   /** Slug for back-to-galleries chip. If set, shows breadcrumb 'Galerías / title'. */
   breadcrumb?: { parent: string; parentHref: string; title: string };
+  /** Used by the mobile menu to mark the current nav item. */
+  current?:
+    | "home"
+    | "photos"
+    | "galleries"
+    | "favorites"
+    | "tags"
+    | "map"
+    | "other";
 }
 
-export default function Topbar({ title, breadcrumb }: Props) {
+export default function Topbar({ title, breadcrumb, current }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -27,7 +38,6 @@ export default function Topbar({ title, breadcrumb }: Props) {
     const fd = new FormData(e.currentTarget);
     const q = String(fd.get("q") ?? "").trim();
     if (!q) return;
-    // Naive: just reflect to URL — search filtering is a follow-up commit
     const u = new URL(window.location.href);
     u.searchParams.set("q", q);
     window.location.assign(u.toString());
@@ -38,7 +48,7 @@ export default function Topbar({ title, breadcrumb }: Props) {
 
   return (
     <header className="topbar">
-      <div className="row" style={{ gap: 10, minWidth: 0 }}>
+      <div className="row topbar-breadcrumb" style={{ gap: 10, minWidth: 0 }}>
         {breadcrumb ? (
           <>
             <a className="btn ghost sm" href={breadcrumb.parentHref}>
@@ -82,15 +92,38 @@ export default function Topbar({ title, breadcrumb }: Props) {
         <kbd>⌘K</kbd>
       </form>
       <div className="topbar-spacer" />
-      <button className="btn primary" onClick={openUploader} aria-label="Subir fotos">
+      <button
+        className="btn primary"
+        onClick={openUploader}
+        aria-label="Subir fotos"
+      >
         <Icons.Upload size={15} />
         <span className="lbl-d">Subir fotos</span>
       </button>
-      <form method="POST" action="/api/auth/logout" style={{ margin: 0 }} className="lbl-d">
+      <form
+        method="POST"
+        action="/api/auth/logout"
+        style={{ margin: 0 }}
+        className="lbl-d"
+      >
         <button type="submit" className="btn ghost sm">
           Salir
         </button>
       </form>
+      {/* Mobile-only hamburger that opens the drawer with nav + mood + theme + logout */}
+      <button
+        className="iconbtn menu-toggle"
+        onClick={() => setMenuOpen(true)}
+        aria-label="Menú"
+      >
+        <Icons.Menu size={16} />
+      </button>
+
+      <MobileMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        current={current}
+      />
     </header>
   );
 }
