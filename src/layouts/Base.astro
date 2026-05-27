@@ -1,9 +1,13 @@
 ---
 import "~/styles/global.css";
+import UploaderModal from "~/components/UploaderModal.tsx";
+
 interface Props {
   title?: string;
+  /** When set, uploads default to this gallery (used on /g/{slug}). */
+  currentGallery?: { id: number; name: string };
 }
-const { title = "Personal Flickr" } = Astro.props;
+const { title = "Personal Flickr", currentGallery } = Astro.props;
 const authed = Astro.locals.user != null;
 ---
 
@@ -16,6 +20,16 @@ const authed = Astro.locals.user != null;
     <title>{title}</title>
   </head>
   <body class="h-full antialiased">
+    {/* Make the gallery context available to the React UploaderModal island
+        BEFORE hydration so it picks the default destination on first render. */}
+    {
+      currentGallery && (
+        <script is:inline define:vars={{ g: currentGallery }}>
+          window.__currentGallery = g;
+        </script>
+      )
+    }
+
     <header
       class="sticky top-0 z-20 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur"
     >
@@ -25,20 +39,45 @@ const authed = Astro.locals.user != null;
         <a href="/" class="flex items-center gap-2 font-semibold tracking-tight">
           <span class="text-pink-400">●</span> Personal Flickr
         </a>
-        {
-          authed && (
-            <form method="POST" action="/api/auth/logout">
+        <div class="flex items-center gap-2">
+          {
+            authed && (
               <button
-                type="submit"
-                class="rounded-md px-3 py-1 text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
+                type="button"
+                id="open-uploader"
+                class="rounded-md bg-pink-500 px-3 py-1 text-sm font-medium text-white hover:bg-pink-600"
               >
-                Salir
+                + Subir fotos
               </button>
-            </form>
-          )
-        }
+              <form method="POST" action="/api/auth/logout">
+                <button
+                  type="submit"
+                  class="rounded-md px-3 py-1 text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
+                >
+                  Salir
+                </button>
+              </form>
+            )
+          }
+        </div>
       </div>
     </header>
+
+    {
+      authed && (
+        <>
+          <UploaderModal client:load />
+          <script is:inline>
+            document
+              .getElementById("open-uploader")
+              ?.addEventListener("click", () => {
+                window.dispatchEvent(new CustomEvent("uploader:open"));
+              });
+          </script>
+        </>
+      )
+    }
+
     <main class="mx-auto max-w-7xl px-4 py-6"><slot /></main>
   </body>
 </html>

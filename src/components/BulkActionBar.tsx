@@ -9,11 +9,14 @@ interface Gallery {
 interface BulkActionBarProps {
   count: number;
   selectedIds: number[];
+  /** Whether *all* currently-selected photos are already favorite. Drives label. */
+  allFavorite: boolean;
   /** If set, we're inside a gallery → expose 'Quitar de galería'. */
   galleryId?: number;
   onCancel: () => void;
   onRemoveFromGallery: () => Promise<void> | void;
   onDelete: () => Promise<void> | void;
+  onFavorite: (value: boolean) => Promise<void> | void;
   /** Called after a successful bulk-add (to clear selection). */
   onAdded: () => void;
 }
@@ -21,10 +24,12 @@ interface BulkActionBarProps {
 export default function BulkActionBar({
   count,
   selectedIds,
+  allFavorite,
   galleryId,
   onCancel,
   onRemoveFromGallery,
   onDelete,
+  onFavorite,
   onAdded,
 }: BulkActionBarProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -49,6 +54,16 @@ export default function BulkActionBar({
               className="rounded-md bg-pink-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-pink-600"
             >
               + Añadir a galería
+            </button>
+            <button
+              onClick={() => onFavorite(!allFavorite)}
+              className="rounded-md border border-amber-500/40 px-3 py-1.5 text-sm hover:bg-amber-500/10"
+              style={{ color: "#fbbf24" }}
+              title={
+                allFavorite ? "Quitar de favoritos" : "Marcar como favoritos"
+              }
+            >
+              {allFavorite ? "☆ Quitar favorito" : "★ Favorito"}
             </button>
             {galleryId != null && (
               <button

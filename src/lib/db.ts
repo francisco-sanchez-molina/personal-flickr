@@ -36,6 +36,10 @@ addColumnIfMissing("photos", "developed_at", "INTEGER NOT NULL DEFAULT 0");
 addColumnIfMissing("photos", "develop_params", "TEXT");
 addColumnIfMissing("photos", "has_base", "INTEGER NOT NULL DEFAULT 0");
 addColumnIfMissing("photos", "original_ext", "TEXT");
+addColumnIfMissing("photos", "is_favorite", "INTEGER NOT NULL DEFAULT 0");
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_photos_favorite ON photos(is_favorite, uploaded_at DESC)`,
+);
 // Backfill developed_at = uploaded_at for old rows
 db.exec(
   `UPDATE photos SET developed_at = uploaded_at WHERE developed_at = 0`,
@@ -80,6 +84,8 @@ export interface Photo {
   has_base: number;
   /** Original extension like ".CR2" or ".jpg" (lowercased). */
   original_ext: string | null;
+  /** 1 = user-marked favorite. */
+  is_favorite: number;
 }
 
 const stmts = {
@@ -104,6 +110,12 @@ const stmts = {
     `UPDATE photos
        SET width = ?, height = ?, size_bytes = ?, developed_at = ?, develop_params = ?
      WHERE id = ?`,
+  ),
+  setFavorite: db.prepare(
+    `UPDATE photos SET is_favorite = ? WHERE id = ?`,
+  ),
+  listFavorites: db.prepare<[], Photo>(
+    `SELECT * FROM photos WHERE is_favorite = 1 ORDER BY uploaded_at DESC, id DESC`,
   ),
   delete: db.prepare("DELETE FROM photos WHERE id = ?"),
 };
@@ -171,6 +183,10 @@ export const photoQueries = {
       id,
     );
   },
+  setFavorite: (id: number, value: boolean) => {
+    stmts.setFavorite.run(value ? 1 : 0, id);
+  },
+  listFavorites: () => stmts.listFavorites.all(),
   delete: (id: number) => stmts.delete.run(id),
 };
 

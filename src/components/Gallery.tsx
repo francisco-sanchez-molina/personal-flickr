@@ -22,6 +22,7 @@ interface Photo {
   develop_params: string | null;
   has_base: number;
   original_ext: string | null;
+  is_favorite: number;
 }
 
 function parseDevelopParams(json: string | null): DevelopParams {
@@ -240,6 +241,28 @@ export default function Gallery({
     [],
   );
 
+  const toggleFavorite = useCallback(
+    async (id: number) => {
+      const cur = photos.find((p) => p.id === id);
+      if (!cur) return;
+      const next = cur.is_favorite ? 0 : 1;
+      // Optimistic update
+      updatePhoto(id, { is_favorite: next });
+      try {
+        const res = await fetch(`/api/photos/${id}/favorite`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ value: next === 1 }),
+        });
+        if (!res.ok) throw new Error("favorite failed");
+      } catch {
+        // Revert on failure
+        updatePhoto(id, { is_favorite: cur.is_favorite });
+      }
+    },
+    [photos, updatePhoto],
+  );
+
   if (photos.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-neutral-500">
@@ -282,6 +305,39 @@ export default function Gallery({
     setPhotos((p) => p.filter((x) => !selected.has(x.id)));
     clearSelection();
   }, [selected, clearSelection]);
+
+  const bulkFavorite = useCallback(
+    async (value: boolean) => {
+      const ids = Array.from(selected);
+      if (ids.length === 0) return;
+      // Optimistic update
+      setPhotos((arr) =>
+        arr.map((x) =>
+          selected.has(x.id) ? { ...x, is_favorite: value ? 1 : 0 } : x,
+        ),
+      );
+      await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/photos/${id}/favorite`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ value }),
+          }),
+        ),
+      );
+      clearSelection();
+    },
+    [selected, clearSelection],
+  );
+
+  /** True iff every currently-selected photo is already favorite. */
+  const allSelectedAreFavorite = (() => {
+    if (selected.size === 0) return false;
+    for (const p of photos) {
+      if (selected.has(p.id) && p.is_favorite !== 1) return false;
+    }
+    return true;
+  })();
 
   return (
     <>
@@ -376,6 +432,18 @@ export default function Gallery({
                 </div>
               )}
 
+              {/* Favorite star overlay */}
+              {p.is_favorite === 1 && (
+                <div
+                  className="pointer-events-none absolute right-2 top-2 text-xl drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+                  style={{ color: "#fbbf24" }}
+                  aria-label="Favorito"
+                  title="Favorito"
+                >
+                  ★
+                </div>
+              )}
+
               <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1 text-[11px] opacity-0 transition group-hover:opacity-100">
                 <div className="truncate">{p.name}</div>
                 <div className="text-neutral-400">
@@ -396,6 +464,7 @@ export default function Gallery({
           }
           onNext={() => setActive((i) => (i! + 1) % photos.length)}
           onDelete={() => remove(photos[active].id)}
+          onToggleFavorite={() => toggleFavorite(photos[active].id)}
           onDeveloped={(developedAt, paramsJson) =>
             updatePhoto(photos[active].id, {
               developed_at: developedAt,
@@ -409,10 +478,12 @@ export default function Gallery({
         <BulkActionBar
           count={selected.size}
           selectedIds={Array.from(selected)}
+          allFavorite={allSelectedAreFavorite}
           galleryId={galleryId}
           onCancel={clearSelection}
           onRemoveFromGallery={bulkRemoveFromGallery}
           onDelete={bulkDelete}
+          onFavorite={bulkFavorite}
           onAdded={clearSelection}
         />
       )}
@@ -426,6 +497,7 @@ function Lightbox({
   onPrev,
   onNext,
   onDelete,
+  onToggleFavorite,
   onDeveloped,
 }: {
   photo: Photo;
@@ -433,8 +505,10 @@ function Lightbox({
   onPrev: () => void;
   onNext: () => void;
   onDelete: () => void;
+  onToggleFavorite: () => void;
   onDeveloped: (developedAt: number, developParamsJson: string | null) => void;
 }) {
+  const isFav = photo.is_favorite === 1;
   const [developOpen, setDevelopOpen] = useState(false);
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
   // The TransformWrapper handles pinch + pan + double-tap zoom internally.
@@ -548,6 +622,20 @@ function Lightbox({
           </div>
         </div>
         <div className="relative flex items-center gap-1">
+          <button
+            onClick={onToggleFavorite}
+            className={[
+              "rounded-md px-3 py-1 transition",
+              isFav
+                ? "hover:bg-amber-500/10"
+                : "text-neutral-300 hover:bg-neutral-800",
+            ].join(" ")}
+            style={isFav ? { color: "#fbbf24" } : undefined}
+            title={isFav ? "Quitar de favoritos" : "Marcar como favorito"}
+            aria-pressed={isFav}
+          >
+            {isFav ? "★" : "☆"}
+          </button>
           {photo.has_base === 1 && (
             <button
               onClick={() => setDevelopOpen(true)}

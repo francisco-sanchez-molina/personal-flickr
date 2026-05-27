@@ -1,22 +1,28 @@
 ---
 import Base from "~/layouts/Base.astro";
-import Uploader from "~/components/Uploader.tsx";
 import Gallery from "~/components/Gallery.tsx";
 import GalleriesGrid from "~/components/GalleriesGrid.tsx";
 import { galleryQueries, photoQueries } from "~/lib/db";
 
-const view = Astro.url.searchParams.get("view") === "galleries"
-  ? "galleries"
-  : "photos";
+const viewParam = Astro.url.searchParams.get("view");
+const view: "photos" | "favorites" | "galleries" =
+  viewParam === "galleries"
+    ? "galleries"
+    : viewParam === "favorites"
+      ? "favorites"
+      : "photos";
 
-const photos = view === "photos" ? photoQueries.list() : [];
+const photos =
+  view === "photos"
+    ? photoQueries.list()
+    : view === "favorites"
+      ? photoQueries.listFavorites()
+      : [];
 const galleries = view === "galleries" ? galleryQueries.list() : [];
 ---
 
 <Base>
   <div class="space-y-6">
-    <Uploader client:load />
-
     {/* View toggle */}
     <nav class="flex gap-1 border-b border-neutral-800">
       <a
@@ -29,6 +35,17 @@ const galleries = view === "galleries" ? galleryQueries.list() : [];
         ]}
       >
         Fotos
+      </a>
+      <a
+        href="/?view=favorites"
+        class:list={[
+          "rounded-t-md px-4 py-2 text-sm font-medium transition",
+          view === "favorites"
+            ? "border-b-2 border-amber-400 text-neutral-100"
+            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100",
+        ]}
+      >
+        <span style="color:#fbbf24">★</span> Favoritas
       </a>
       <a
         href="/?view=galleries"
@@ -44,15 +61,16 @@ const galleries = view === "galleries" ? galleryQueries.list() : [];
     </nav>
 
     {
-      view === "photos" ? (
+      view === "galleries" ? (
+        <GalleriesGrid client:load initial={galleries} />
+      ) : (
         <section>
           <h2 class="mb-3 text-sm font-medium uppercase tracking-wider text-neutral-400">
-            Todas las fotos <span class="ml-1 text-neutral-600">({photos.length})</span>
+            {view === "favorites" ? "Favoritas" : "Todas las fotos"}{" "}
+            <span class="ml-1 text-neutral-600">({photos.length})</span>
           </h2>
           <Gallery client:load initial={photos} />
         </section>
-      ) : (
-        <GalleriesGrid client:load initial={galleries} />
       )
     }
   </div>
