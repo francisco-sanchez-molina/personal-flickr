@@ -2,19 +2,58 @@
 import Base from "~/layouts/Base.astro";
 import Uploader from "~/components/Uploader.tsx";
 import Gallery from "~/components/Gallery.tsx";
-import { photoQueries } from "~/lib/db";
+import GalleriesGrid from "~/components/GalleriesGrid.tsx";
+import { galleryQueries, photoQueries } from "~/lib/db";
 
-const photos = photoQueries.list();
+const view = Astro.url.searchParams.get("view") === "galleries"
+  ? "galleries"
+  : "photos";
+
+const photos = view === "photos" ? photoQueries.list() : [];
+const galleries = view === "galleries" ? galleryQueries.list() : [];
 ---
 
 <Base>
-  <div class="space-y-8">
+  <div class="space-y-6">
     <Uploader client:load />
-    <section>
-      <h2 class="mb-3 text-sm font-medium uppercase tracking-wider text-neutral-400">
-        Galería <span class="ml-1 text-neutral-600">({photos.length})</span>
-      </h2>
-      <Gallery client:load initial={photos} />
-    </section>
+
+    {/* View toggle */}
+    <nav class="flex gap-1 border-b border-neutral-800">
+      <a
+        href="/"
+        class:list={[
+          "rounded-t-md px-4 py-2 text-sm font-medium transition",
+          view === "photos"
+            ? "border-b-2 border-pink-500 text-neutral-100"
+            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100",
+        ]}
+      >
+        Fotos
+      </a>
+      <a
+        href="/?view=galleries"
+        class:list={[
+          "rounded-t-md px-4 py-2 text-sm font-medium transition",
+          view === "galleries"
+            ? "border-b-2 border-pink-500 text-neutral-100"
+            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100",
+        ]}
+      >
+        Galerías
+      </a>
+    </nav>
+
+    {
+      view === "photos" ? (
+        <section>
+          <h2 class="mb-3 text-sm font-medium uppercase tracking-wider text-neutral-400">
+            Todas las fotos <span class="ml-1 text-neutral-600">({photos.length})</span>
+          </h2>
+          <Gallery client:load initial={photos} />
+        </section>
+      ) : (
+        <GalleriesGrid client:load initial={galleries} />
+      )
+    }
   </div>
 </Base>

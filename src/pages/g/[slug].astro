@@ -1,0 +1,30 @@
+---
+import Base from "~/layouts/Base.astro";
+import Gallery from "~/components/Gallery.tsx";
+import GalleryHeader from "~/components/GalleryHeader.tsx";
+import { galleryQueries } from "~/lib/db";
+
+const slug = Astro.params.slug;
+if (!slug) return Astro.redirect("/?view=galleries");
+
+const gallery = galleryQueries.bySlug(slug);
+if (!gallery) {
+  return new Response("Gallery not found", { status: 404 });
+}
+
+const photos = galleryQueries.photosOf(gallery.id);
+---
+
+<Base title={`${gallery.name} · Personal Flickr`}>
+  <div class="space-y-4">
+    <nav class="text-sm">
+      <a href="/?view=galleries" class="text-neutral-400 hover:text-pink-300">
+        ← Galerías
+      </a>
+    </nav>
+
+    <GalleryHeader client:load gallery={gallery} initialPhotoCount={photos.length} />
+
+    <Gallery client:load initial={photos} galleryId={gallery.id} />
+  </div>
+</Base>

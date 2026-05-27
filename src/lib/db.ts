@@ -41,6 +41,30 @@ db.exec(
   `UPDATE photos SET developed_at = uploaded_at WHERE developed_at = 0`,
 );
 
+// Galleries (many-to-many with photos)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS galleries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug        TEXT NOT NULL UNIQUE,
+    name        TEXT NOT NULL,
+    description TEXT,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS photo_galleries (
+    photo_id    INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+    gallery_id  INTEGER NOT NULL REFERENCES galleries(id) ON DELETE CASCADE,
+    added_at    INTEGER NOT NULL,
+    PRIMARY KEY (photo_id, gallery_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_pg_gallery ON photo_galleries(gallery_id, added_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_pg_photo   ON photo_galleries(photo_id);
+`);
+// FK enforcement is per-connection in SQLite
+db.pragma("foreign_keys = ON");
+
 export interface Photo {
   id: number;
   name: string;
@@ -148,4 +172,145 @@ export const photoQueries = {
     );
   },
   delete: (id: number) => stmts.delete.run(id),
+};
+
+// ============================================================
+//  Galleries
+// ============================================================
+
+export interface Gallery {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface GallerySummary extends Gallery {
+  /** Total photos in this gallery. */
+  photo_count: number;
+  /** Filename of the most recently added/uploaded photo to use as cover. Null if empty. */
+  cover_name: string | null;
+  /** developed_at of the cover photo for cache-busting the thumb URL. */
+  cover_developed_at: number | null;
+}
+
+const galleryStmts = {
+  byId: db.prepare<[number], Gallery>("SELECT * FROM galleries WHERE id = ?"),
+  bySlug: db.prepare<[string], Gallery>(
+    "SELECT * FROM galleries WHERE slug = ?",
+  ),
+  slugExists: db.prepare<[string], { c: number }>(
+    "SELECT COUNT(*) AS c FROM galleries WHERE slug = ?",
+  ),
+  insert: db.prepare(
+    `INSERT INTO galleries (slug, name, description, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?)`,
+  ),
+  rename: db.prepare(
+    `UPDATE galleries SET name = ?, slug = ?, updated_at = ? WHERE id = ?`,
+  ),
+  delete: db.prepare("DELETE FROM galleries WHERE id = ?"),
+  touch: db.prepare("UPDATE galleries SET updated_at = ? WHERE id = ?"),
+
+  // List with cover (most recent photo by uploaded_at) + count
+  list: db.prepare<[], GallerySummary>(`
+    SELECT
+      g.*,
+      COALESCE(pc.cnt, 0) AS photo_count,
+      cover.name AS cover_name,
+      cover.developed_at AS cover_developed_at
+    FROM galleries g
+    LEFT JOIN (
+      SELECT gallery_id, COUNT(*) AS cnt
+      FROM photo_galleries
+      GROUP BY gallery_id
+    ) pc ON pc.gallery_id = g.id
+    LEFT JOIN photos cover ON cover.id = (
+      SELECT p.id FROM photos p
+      JOIN photo_galleries pg ON pg.photo_id = p.id
+      WHERE pg.gallery_id = g.id
+      ORDER BY p.uploaded_at DESC, p.id DESC
+      LIMIT 1
+    )
+    ORDER BY g.updated_at DESC, g.id DESC
+  `),
+
+  // Photos in a gallery (sorted by upload date)
+  photosOf: db.prepare<[number], Photo>(`
+    SELECT p.*
+    FROM photos p
+    JOIN photo_galleries pg ON pg.photo_id = p.id
+    WHERE pg.gallery_id = ?
+    ORDER BY p.uploaded_at DESC, p.id DESC
+  `),
+
+  // Galleries a photo belongs to
+  galleriesOfPhoto: db.prepare<[number], Gallery>(`
+    SELECT g.*
+    FROM galleries g
+    JOIN photo_galleries pg ON pg.gallery_id = g.id
+    WHERE pg.photo_id = ?
+    ORDER BY g.name ASC
+  `),
+
+  // Membership
+  addMember: db.prepare(
+    `INSERT OR IGNORE INTO photo_galleries (photo_id, gallery_id, added_at)
+     VALUES (?, ?, ?)`,
+  ),
+  removeMember: db.prepare(
+    `DELETE FROM photo_galleries WHERE photo_id = ? AND gallery_id = ?`,
+  ),
+  clearMembersOfPhoto: db.prepare(
+    `DELETE FROM photo_galleries WHERE photo_id = ?`,
+  ),
+};
+
+export const galleryQueries = {
+  byId: (id: number) => galleryStmts.byId.get(id) ?? null,
+  bySlug: (slug: string) => galleryStmts.bySlug.get(slug) ?? null,
+  slugExists: (slug: string) =>
+    (galleryStmts.slugExists.get(slug)?.c ?? 0) > 0,
+
+  list: () => galleryStmts.list.all(),
+  photosOf: (galleryId: number) => galleryStmts.photosOf.all(galleryId),
+  galleriesOfPhoto: (photoId: number) =>
+    galleryStmts.galleriesOfPhoto.all(photoId),
+
+  create: (slug: string, name: string, description: string | null) => {
+    const now = Date.now();
+    const r = galleryStmts.insert.run(slug, name, description, now, now);
+    return Number(r.lastInsertRowid);
+  },
+
+  rename: (id: number, name: string, slug: string) => {
+    galleryStmts.rename.run(name, slug, Date.now(), id);
+  },
+
+  delete: (id: number) => galleryStmts.delete.run(id),
+
+  addMember: (photoId: number, galleryId: number) => {
+    const now = Date.now();
+    galleryStmts.addMember.run(photoId, galleryId, now);
+    galleryStmts.touch.run(now, galleryId);
+  },
+
+  removeMember: (photoId: number, galleryId: number) => {
+    galleryStmts.removeMember.run(photoId, galleryId);
+    galleryStmts.touch.run(Date.now(), galleryId);
+  },
+
+  /** Replace the set of galleries a photo belongs to (transactional). */
+  setMembershipsOfPhoto: db.transaction(
+    (photoId: number, galleryIds: number[]) => {
+      galleryStmts.clearMembersOfPhoto.run(photoId);
+      const now = Date.now();
+      for (const gid of galleryIds) {
+        galleryStmts.addMember.run(photoId, gid, now);
+        galleryStmts.touch.run(now, gid);
+      }
+    },
+  ),
 };

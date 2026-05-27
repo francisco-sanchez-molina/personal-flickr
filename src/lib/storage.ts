@@ -3,6 +3,40 @@ import path from "node:path";
 import { paths } from "./config";
 import { photoQueries } from "./db";
 
+/**
+ * Slugify an arbitrary string for use in URLs.
+ * Lowercase, accents stripped, non-alphanum → `-`, collapsed, trimmed.
+ * Always returns at least "g" so we never emit an empty slug.
+ */
+export function slugify(input: string): string {
+  const s = input
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "") // strip accents (combining marks)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return s || "g";
+}
+
+/**
+ * Append a numeric suffix until the slug is free.
+ * `exists(slug)` is called repeatedly with candidates.
+ */
+export function uniqueSlug(
+  base: string,
+  exists: (candidate: string) => boolean,
+): string {
+  if (!exists(base)) return base;
+  let i = 2;
+  while (i < 10_000) {
+    const candidate = `${base}-${i}`;
+    if (!exists(candidate)) return candidate;
+    i++;
+  }
+  return `${base}-${Date.now()}`;
+}
+
 /** Strip path, collapse weird chars, force a single extension. Keeps stem; normalizes ext. */
 export function sanitizeName(rawName: string): { stem: string; ext: string } {
   const base = path.basename(rawName);

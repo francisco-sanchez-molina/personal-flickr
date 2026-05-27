@@ -8,6 +8,7 @@ import DevelopPanel, {
   DEFAULT_DEVELOP,
   type DevelopParams,
 } from "./DevelopPanel";
+import GalleryPicker from "./GalleryPicker";
 
 interface Photo {
   id: number;
@@ -56,11 +57,21 @@ function fmtDate(ts: number): string {
   });
 }
 
-export default function Gallery({ initial }: { initial: Photo[] }) {
+export default function Gallery({
+  initial,
+  galleryId,
+}: {
+  initial: Photo[];
+  /** If set, we're viewing a specific gallery — delete removes from gallery, not from disk. */
+  galleryId?: number;
+}) {
   const [photos, setPhotos] = useState<Photo[]>(initial);
   const [active, setActive] = useState<number | null>(null);
 
   useEffect(() => {
+    // Newly-uploaded photos only enter the "all photos" view, not a
+    // gallery-filtered view (they aren't in this gallery yet).
+    if (galleryId != null) return;
     const onAdded = (e: Event) => {
       const photo = (e as CustomEvent<Photo>).detail;
       setPhotos((p) => {
@@ -71,7 +82,7 @@ export default function Gallery({ initial }: { initial: Photo[] }) {
     };
     window.addEventListener("photo:added", onAdded);
     return () => window.removeEventListener("photo:added", onAdded);
-  }, []);
+  }, [galleryId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -85,14 +96,32 @@ export default function Gallery({ initial }: { initial: Photo[] }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [active, photos.length]);
 
-  const remove = useCallback(async (id: number) => {
-    if (!confirm("¿Eliminar esta foto?")) return;
-    const res = await fetch(`/api/photos/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      setPhotos((p) => p.filter((x) => x.id !== id));
-      setActive(null);
-    }
-  }, []);
+  const remove = useCallback(
+    async (id: number) => {
+      // Inside a gallery view: "remove" means take out of THIS gallery, not delete.
+      if (galleryId != null) {
+        if (!confirm("¿Quitar esta foto de la galería? (no se borra del disco)"))
+          return;
+        const res = await fetch(
+          `/api/galleries/${galleryId}/photos/${id}`,
+          { method: "DELETE" },
+        );
+        if (res.ok) {
+          setPhotos((p) => p.filter((x) => x.id !== id));
+          setActive(null);
+        }
+        return;
+      }
+      // All-photos view: full delete.
+      if (!confirm("¿Eliminar esta foto? Se borra el archivo del disco.")) return;
+      const res = await fetch(`/api/photos/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setPhotos((p) => p.filter((x) => x.id !== id));
+        setActive(null);
+      }
+    },
+    [galleryId],
+  );
 
   const updatePhoto = useCallback(
     (id: number, patch: Partial<Photo>) => {
@@ -173,6 +202,7 @@ function Lightbox({
   onDeveloped: (developedAt: number, developParamsJson: string | null) => void;
 }) {
   const [developOpen, setDevelopOpen] = useState(false);
+  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
   // The TransformWrapper handles pinch + pan + double-tap zoom internally.
   // We track `scale` in state so we can:
   //   - disable library panning at scale=1 (lets swipe-to-navigate pass through)
@@ -283,7 +313,7 @@ function Lightbox({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="relative flex items-center gap-1">
           {photo.has_base === 1 && (
             <button
               onClick={() => setDevelopOpen(true)}
@@ -293,6 +323,13 @@ function Lightbox({
               Revelar
             </button>
           )}
+          <button
+            onClick={() => setGalleryPickerOpen((v) => !v)}
+            className="rounded-md px-3 py-1 hover:bg-neutral-800"
+            title="Añadir a galerías"
+          >
+            Galerías
+          </button>
           <a
             href={photoUrl(photo)}
             download={photo.name}
@@ -313,6 +350,12 @@ function Lightbox({
           >
             ✕
           </button>
+          {galleryPickerOpen && (
+            <GalleryPicker
+              photoId={photo.id}
+              onClose={() => setGalleryPickerOpen(false)}
+            />
+          )}
         </div>
       </div>
       <div
