@@ -4,6 +4,7 @@
  * hidden on mobile (≤720px) via CSS.
  */
 import { useEffect, useState } from "react";
+import Histogram from "./Histogram";
 
 interface Photo {
   id: number;
@@ -12,6 +13,7 @@ interface Photo {
   height: number;
   size_bytes: number;
   uploaded_at: number;
+  developed_at: number;
   original_ext: string | null;
   camera: string | null;
   lens: string | null;
@@ -130,6 +132,13 @@ export default function LightboxInfo({ photo }: { photo: Photo }) {
           />
           <K label="Peso" value={<span className="m">{fmtSize(photo.size_bytes)}</span>} />
         </div>
+      </div>
+
+      <div className="sec">
+        <h4>Histograma</h4>
+        <Histogram
+          src={`/files/photo/${encodeURIComponent(photo.name)}?v=${photo.developed_at}`}
+        />
       </div>
 
       {hasGps && (
