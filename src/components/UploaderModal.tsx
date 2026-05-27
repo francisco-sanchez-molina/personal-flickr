@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import Uploader from "./Uploader";
 import { Icons } from "./icons";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/Dialog";
 
 interface CurrentGallery {
   id: number;
@@ -14,37 +22,40 @@ function readCurrentGallery(): CurrentGallery | null {
   return g ?? null;
 }
 
+/**
+ * Global upload modal. Mounted once by Base.astro. Opens via:
+ *   - window dispatching `uploader:open` (the topbar button)
+ *   - the user dragging a file anywhere onto the page
+ */
 export default function UploaderModal() {
   const [open, setOpen] = useState(false);
-  const [dragging, setDragging] = useState(false);
   const currentGallery = readCurrentGallery();
 
+  // Open on custom event
   useEffect(() => {
     const onOpen = () => setOpen(true);
     window.addEventListener("uploader:open", onOpen);
     return () => window.removeEventListener("uploader:open", onOpen);
   }, []);
 
+  // Open on file drag anywhere on the page
   useEffect(() => {
     let depth = 0;
     const onDragEnter = (e: DragEvent) => {
       if (!e.dataTransfer?.types?.includes("Files")) return;
       depth++;
-      setDragging(true);
       setOpen(true);
     };
     const onDragLeave = () => {
       depth--;
-      if (depth <= 0) {
-        depth = 0;
-        setDragging(false);
-      }
+      if (depth <= 0) depth = 0;
     };
     const onDrop = () => {
       depth = 0;
-      setDragging(false);
     };
     const onDragOver = (e: DragEvent) => {
+      // Prevent the browser from opening dropped files in a new tab if the
+      // user misses the dropzone.
       if (e.dataTransfer?.types?.includes("Files")) e.preventDefault();
     };
     window.addEventListener("dragenter", onDragEnter);
@@ -59,42 +70,27 @@ export default function UploaderModal() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !dragging) setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, dragging]);
-
-  if (!open) return null;
-
   return (
-    <div
-      className="modal"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) setOpen(false);
-      }}
-    >
-      <div className="modal-card">
-        <div className="modal-head">
-          <h2>Subir fotos</h2>
-          <button
-            className="iconbtn"
-            onClick={() => setOpen(false)}
-            aria-label="Cerrar"
-          >
-            <Icons.Close size={15} />
-          </button>
-        </div>
-        <div className="modal-body">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent size="md">
+        <DialogHeader>
+          <DialogTitle>Subir fotos</DialogTitle>
+          <DialogClose asChild>
+            <button className="iconbtn" aria-label="Cerrar">
+              <Icons.Close size={15} />
+            </button>
+          </DialogClose>
+        </DialogHeader>
+        <DialogDescription>
+          Sube fotos al servidor — JPEG, PNG, HEIC y RAW de cámara
+        </DialogDescription>
+        <div className="dialog-body">
           <Uploader
             defaultGalleryId={currentGallery?.id}
             defaultGalleryName={currentGallery?.name}
           />
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

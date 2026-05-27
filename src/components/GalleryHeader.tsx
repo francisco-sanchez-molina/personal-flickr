@@ -1,5 +1,15 @@
 import { useState } from "react";
 import { Icons } from "./icons";
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/Dialog";
 
 interface Gallery {
   id: number;
@@ -13,7 +23,6 @@ export default function GalleryHeader({
   inline = false,
 }: {
   gallery: Gallery;
-  /** Kept for backwards-compat with the page that still passes it. */
   initialPhotoCount?: number;
   /** Inline mode shows only action buttons (used inside the hero). */
   inline?: boolean;
@@ -72,99 +81,89 @@ export default function GalleryHeader({
     }
   };
 
-  if (inline) {
-    return (
-      <>
-        <button className="btn primary" onClick={() => setEditing((v) => !v)}>
-          <Icons.Sliders size={14} /> Renombrar
-        </button>
-        <button className="btn" onClick={remove} disabled={busy}>
-          <Icons.Trash size={14} /> Eliminar
-        </button>
-        {editing && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 90,
-              background: "rgba(0,0,0,.6)",
-              display: "grid",
-              placeItems: "center",
-              padding: 24,
-            }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setEditing(false);
-            }}
-          >
-            <div
-              className="modal-card"
-              style={{ width: "min(420px, 100%)", padding: 0 }}
+  if (!inline) return null;
+
+  return (
+    <>
+      <button className="btn primary" onClick={() => setEditing(true)}>
+        <Icons.Sliders size={14} /> Renombrar
+      </button>
+      <button className="btn" onClick={remove} disabled={busy}>
+        <Icons.Trash size={14} /> Eliminar
+      </button>
+
+      <Dialog
+        open={editing}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditing(false);
+            setName(gallery.name);
+            setError(null);
+          }
+        }}
+      >
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Renombrar galería</DialogTitle>
+            <DialogClose asChild>
+              <button className="iconbtn" aria-label="Cerrar">
+                <Icons.Close size={15} />
+              </button>
+            </DialogClose>
+          </DialogHeader>
+          <DialogDescription>
+            Cambia el nombre de la galería; el slug se regenera
+            automáticamente
+          </DialogDescription>
+          <DialogBody>
+            <form
+              id="rename-form"
+              style={{ display: "grid", gap: 10 }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                save();
+              }}
             >
-              <div className="modal-head">
-                <h2>Renombrar galería</h2>
-                <button
-                  className="iconbtn"
-                  onClick={() => setEditing(false)}
-                  aria-label="Cerrar"
-                >
-                  <Icons.Close size={15} />
-                </button>
+              <div className="search" style={{ padding: 10 }}>
+                <input
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={80}
+                  placeholder="Nombre"
+                />
               </div>
-              <div className="modal-body">
-                <form
-                  style={{ display: "grid", gap: 12 }}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    save();
+              {error && (
+                <p
+                  style={{
+                    margin: 0,
+                    color: "var(--danger)",
+                    fontSize: 12.5,
+                    fontFamily: "var(--f-mono)",
                   }}
                 >
-                  <div className="search" style={{ padding: 10 }}>
-                    <input
-                      autoFocus
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      maxLength={80}
-                      placeholder="Nombre"
-                    />
-                  </div>
-                  {error && (
-                    <p
-                      style={{
-                        margin: 0,
-                        color: "var(--danger)",
-                        fontSize: 12.5,
-                        fontFamily: "var(--f-mono)",
-                      }}
-                    >
-                      {error}
-                    </p>
-                  )}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: 8,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      onClick={() => setEditing(false)}
-                    >
-                      Cancelar
-                    </button>
-                    <button type="submit" className="btn primary" disabled={busy}>
-                      Guardar
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  }
-
-  return null;
+                  {error}
+                </p>
+              )}
+            </form>
+          </DialogBody>
+          <DialogFooter>
+            <DialogClose asChild>
+              <button type="button" className="btn ghost">
+                Cancelar
+              </button>
+            </DialogClose>
+            <button
+              type="submit"
+              form="rename-form"
+              className="btn primary"
+              disabled={busy}
+            >
+              Guardar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }

@@ -521,13 +521,11 @@ function Lightbox({
   const photo = photos[index];
   const isFav = photo.is_favorite === 1;
   const [developOpen, setDevelopOpen] = useState(false);
-  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // Info panel closed by default — the photo gets full canvas. User toggles
   // it with the "i" button / I key.
   const [showInfo, setShowInfo] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const galleryButtonRef = useRef<HTMLButtonElement>(null);
 
   const [scale, setScale] = useState(1);
   const transformRef = useRef<ReactZoomPanPinchRef>(null);
@@ -669,13 +667,11 @@ function Lightbox({
               <Icons.Sliders size={14} /> Revelar
             </button>
           )}
-          <button
-            ref={galleryButtonRef}
-            className="btn"
-            onClick={() => setGalleryPickerOpen((v) => !v)}
-          >
-            <Icons.Folder size={14} /> Galerías
-          </button>
+          <GalleryPicker photoId={photo.id}>
+            <button className="btn">
+              <Icons.Folder size={14} /> Galerías
+            </button>
+          </GalleryPicker>
           <a
             className="btn"
             href={photoUrl(photo)}
@@ -714,13 +710,6 @@ function Lightbox({
           <button className="iconbtn" onClick={onClose} title="Cerrar (Esc)">
             <Icons.Close size={15} />
           </button>
-
-          {galleryPickerOpen && (
-            <GalleryPicker
-              photoId={photo.id}
-              onClose={() => setGalleryPickerOpen(false)}
-            />
-          )}
         </div>
       </header>
 

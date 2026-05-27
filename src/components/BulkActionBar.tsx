@@ -1,5 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Icons } from "./icons";
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/Dialog";
 
 interface Gallery {
   id: number;
@@ -76,27 +86,28 @@ export default function BulkActionBar({
         </div>
       </div>
 
-      {pickerOpen && (
-        <BulkGalleryPicker
-          photoIds={selectedIds}
-          onClose={() => setPickerOpen(false)}
-          onDone={() => {
-            setPickerOpen(false);
-            onAdded();
-          }}
-        />
-      )}
+      <BulkGalleryPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        photoIds={selectedIds}
+        onDone={() => {
+          setPickerOpen(false);
+          onAdded();
+        }}
+      />
     </>
   );
 }
 
 function BulkGalleryPicker({
+  open,
+  onOpenChange,
   photoIds,
-  onClose,
   onDone,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   photoIds: number[];
-  onClose: () => void;
   onDone: () => void;
 }) {
   const [all, setAll] = useState<Gallery[]>([]);
@@ -106,23 +117,18 @@ function BulkGalleryPicker({
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    setSelected(new Set());
+    setError(null);
     fetch("/api/galleries")
       .then((r) => r.json())
       .then((body) => setAll(body.galleries ?? []))
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [open]);
 
   const toggle = (id: number) => {
     setSelected((prev) => {
@@ -156,7 +162,7 @@ function BulkGalleryPicker({
 
   const save = async () => {
     if (selected.size === 0) {
-      onClose();
+      onOpenChange(false);
       return;
     }
     setSaving(true);
@@ -188,23 +194,21 @@ function BulkGalleryPicker({
   };
 
   return (
-    <div
-      className="modal"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal-card" ref={ref} style={{ width: "min(480px, 100%)" }}>
-        <div className="modal-head">
-          <h2>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent size="sm">
+        <DialogHeader>
+          <DialogTitle>
             Añadir {photoIds.length} foto{photoIds.length === 1 ? "" : "s"}
-          </h2>
-          <button className="iconbtn" onClick={onClose} aria-label="Cerrar">
-            <Icons.Close size={15} />
-          </button>
-        </div>
-        <div className="modal-body" style={{ padding: 14 }}>
-          <div style={{ maxHeight: 320, overflowY: "auto" }}>
+          </DialogTitle>
+          <DialogClose asChild>
+            <button className="iconbtn" aria-label="Cerrar">
+              <Icons.Close size={15} />
+            </button>
+          </DialogClose>
+        </DialogHeader>
+        <DialogDescription>Seleccionar galerías destino</DialogDescription>
+        <DialogBody>
+          <div style={{ maxHeight: 320, overflowY: "auto", marginBottom: 12 }}>
             {loading ? (
               <p
                 style={{
@@ -240,8 +244,6 @@ function BulkGalleryPicker({
               ))
             )}
           </div>
-
-          <div className="divider" />
 
           {creating ? (
             <form
@@ -301,30 +303,22 @@ function BulkGalleryPicker({
               {error}
             </p>
           )}
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 8,
-              marginTop: 14,
-            }}
+        </DialogBody>
+        <DialogFooter>
+          <DialogClose asChild>
+            <button className="btn ghost">Cancelar</button>
+          </DialogClose>
+          <button
+            className="btn primary"
+            onClick={save}
+            disabled={saving || loading || selected.size === 0}
           >
-            <button className="btn ghost" onClick={onClose}>
-              Cancelar
-            </button>
-            <button
-              className="btn primary"
-              onClick={save}
-              disabled={saving || loading || selected.size === 0}
-            >
-              {saving
-                ? "Añadiendo…"
-                : `Añadir a ${selected.size} galería${selected.size === 1 ? "" : "s"}`}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+            {saving
+              ? "Añadiendo…"
+              : `Añadir a ${selected.size} galería${selected.size === 1 ? "" : "s"}`}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
