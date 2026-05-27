@@ -117,6 +117,19 @@ const stmts = {
   listFavorites: db.prepare<[], Photo>(
     `SELECT * FROM photos WHERE is_favorite = 1 ORDER BY uploaded_at DESC, id DESC`,
   ),
+  listOrphans: db.prepare<[], Photo>(`
+    SELECT p.* FROM photos p
+    WHERE NOT EXISTS (
+      SELECT 1 FROM photo_galleries pg WHERE pg.photo_id = p.id
+    )
+    ORDER BY p.uploaded_at DESC, p.id DESC
+  `),
+  countOrphans: db.prepare<[], { c: number }>(`
+    SELECT COUNT(*) AS c FROM photos p
+    WHERE NOT EXISTS (
+      SELECT 1 FROM photo_galleries pg WHERE pg.photo_id = p.id
+    )
+  `),
   delete: db.prepare("DELETE FROM photos WHERE id = ?"),
 };
 
@@ -187,6 +200,8 @@ export const photoQueries = {
     stmts.setFavorite.run(value ? 1 : 0, id);
   },
   listFavorites: () => stmts.listFavorites.all(),
+  listOrphans: () => stmts.listOrphans.all(),
+  countOrphans: () => stmts.countOrphans.get()?.c ?? 0,
   delete: (id: number) => stmts.delete.run(id),
 };
 

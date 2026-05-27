@@ -60,23 +60,27 @@ export default function GalleryPicker({
 
   /**
    * Toggle a gallery membership. Optimistic: flip state immediately, then
-   * PUT the new full snapshot. Reverts on failure.
+   * PUT the new full snapshot. Reverts on failure. On success, broadcasts a
+   * `photo:memberships-changed` event so the page can react (e.g. the Sin
+   * galería list removes the photo as soon as it has any membership).
    */
   const persistSet = async (next: Set<number>) => {
     setError(null);
-    try {
-      const res = await fetch(`/api/photos/${photoId}/galleries`, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ gallery_ids: Array.from(next) }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail ?? body.error ?? "error");
-      }
-    } catch (e: unknown) {
-      throw e instanceof Error ? e : new Error(String(e));
+    const ids = Array.from(next);
+    const res = await fetch(`/api/photos/${photoId}/galleries`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ gallery_ids: ids }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail ?? body.error ?? "error");
     }
+    window.dispatchEvent(
+      new CustomEvent("photo:memberships-changed", {
+        detail: { photoId, galleryIds: ids },
+      }),
+    );
   };
 
   const toggle = async (id: number) => {

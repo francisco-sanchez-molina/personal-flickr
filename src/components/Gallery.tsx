@@ -62,10 +62,13 @@ function fmtDate(ts: number): string {
 export default function Gallery({
   initial,
   galleryId,
+  orphans,
 }: {
   initial: Photo[];
   /** If set, we're viewing a specific gallery — delete removes from gallery, not from disk. */
   galleryId?: number;
+  /** True on the "Sin galería" view — react to memberships-changed by removing photos that gained one. */
+  orphans?: boolean;
 }) {
   const [photos, setPhotos] = useState<Photo[]>(initial);
   const [active, setActive] = useState<number | null>(null);
@@ -192,6 +195,27 @@ export default function Gallery({
     window.addEventListener("photo:added", onAdded);
     return () => window.removeEventListener("photo:added", onAdded);
   }, [galleryId]);
+
+  // React to membership changes coming from the gallery picker
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const d = (
+        e as CustomEvent<{ photoId: number; galleryIds: number[] }>
+      ).detail;
+      // Sin galería view → drop any photo that now has at least one gallery
+      if (orphans && d.galleryIds.length > 0) {
+        setPhotos((p) => p.filter((x) => x.id !== d.photoId));
+        return;
+      }
+      // Specific gallery view → drop any photo that no longer includes this gallery
+      if (galleryId != null && !d.galleryIds.includes(galleryId)) {
+        setPhotos((p) => p.filter((x) => x.id !== d.photoId));
+      }
+    };
+    window.addEventListener("photo:memberships-changed", onChange);
+    return () =>
+      window.removeEventListener("photo:memberships-changed", onChange);
+  }, [galleryId, orphans]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

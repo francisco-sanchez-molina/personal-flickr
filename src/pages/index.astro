@@ -4,23 +4,28 @@ import Gallery from "~/components/Gallery.tsx";
 import GalleriesGrid from "~/components/GalleriesGrid.tsx";
 import { galleryQueries, photoQueries } from "~/lib/db";
 
-// Default landing = Galerías. Photos and Favoritas are opt-in via ?view=.
-// We accept ?view=galleries as an alias of "/" for backwards-compatible links.
+// Default landing = Galerías. Photos, Favoritas and Orphans are opt-in.
 const viewParam = Astro.url.searchParams.get("view");
-const view: "galleries" | "photos" | "favorites" =
+const view: "galleries" | "photos" | "favorites" | "orphans" =
   viewParam === "photos"
     ? "photos"
     : viewParam === "favorites"
       ? "favorites"
-      : "galleries";
+      : viewParam === "orphans"
+        ? "orphans"
+        : "galleries";
 
 const photos =
   view === "photos"
     ? photoQueries.list()
     : view === "favorites"
       ? photoQueries.listFavorites()
-      : [];
+      : view === "orphans"
+        ? photoQueries.listOrphans()
+        : [];
+
 const galleries = view === "galleries" ? galleryQueries.list() : [];
+const orphanCount = view === "galleries" ? photoQueries.countOrphans() : 0;
 ---
 
 <Base>
@@ -31,7 +36,7 @@ const galleries = view === "galleries" ? galleryQueries.list() : [];
         href="/"
         class:list={[
           "rounded-t-md px-4 py-2 text-sm font-medium transition",
-          view === "galleries"
+          view === "galleries" || view === "orphans"
             ? "border-b-2 border-pink-500 text-neutral-100"
             : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100",
         ]}
@@ -64,7 +69,28 @@ const galleries = view === "galleries" ? galleryQueries.list() : [];
 
     {
       view === "galleries" ? (
-        <GalleriesGrid client:load initial={galleries} />
+        <GalleriesGrid
+          client:load
+          initial={galleries}
+          orphanCount={orphanCount}
+        />
+      ) : view === "orphans" ? (
+        <section>
+          <nav class="mb-3 text-sm">
+            <a href="/" class="text-neutral-400 hover:text-pink-300">
+              ← Galerías
+            </a>
+          </nav>
+          <h2 class="mb-3 text-sm font-medium uppercase tracking-wider text-neutral-400">
+            Sin galería{" "}
+            <span class="ml-1 text-neutral-600">({photos.length})</span>
+          </h2>
+          <p class="mb-3 text-xs text-neutral-500">
+            Fotos que aún no están en ninguna galería. Al añadir una a una
+            galería desaparece de esta lista.
+          </p>
+          <Gallery client:load initial={photos} orphans />
+        </section>
       ) : (
         <section>
           <h2 class="mb-3 text-sm font-medium uppercase tracking-wider text-neutral-400">

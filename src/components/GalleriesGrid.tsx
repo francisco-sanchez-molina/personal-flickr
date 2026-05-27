@@ -17,8 +17,11 @@ function thumbUrl(coverName: string, developedAt: number | null): string {
 
 export default function GalleriesGrid({
   initial,
+  orphanCount = 0,
 }: {
   initial: GallerySummary[];
+  /** Photos with no membership. Renders a special leading tile when > 0. */
+  orphanCount?: number;
 }) {
   const [galleries, setGalleries] = useState<GallerySummary[]>(initial);
   const [creating, setCreating] = useState(false);
@@ -110,12 +113,31 @@ export default function GalleriesGrid({
         </p>
       )}
 
-      {galleries.length === 0 ? (
+      {galleries.length === 0 && orphanCount === 0 ? (
         <p className="py-12 text-center text-sm text-neutral-500">
           Aún no hay galerías. Crea una para empezar a organizar.
         </p>
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {orphanCount > 0 && (
+            <li className="group overflow-hidden rounded-lg border-2 border-dashed border-neutral-700 bg-neutral-900/40 transition hover:border-neutral-500">
+              <a href="/?view=orphans" className="block">
+                <div className="flex aspect-square items-center justify-center bg-neutral-900">
+                  <span className="text-5xl text-neutral-600 transition group-hover:text-neutral-400">
+                    ?
+                  </span>
+                </div>
+                <div className="p-2">
+                  <div className="truncate text-sm font-medium text-neutral-300">
+                    Sin galería
+                  </div>
+                  <div className="text-xs text-neutral-500">
+                    {orphanCount} {orphanCount === 1 ? "foto" : "fotos"}
+                  </div>
+                </div>
+              </a>
+            </li>
+          )}
           {galleries.map((g) => (
             <li
               key={g.id}
