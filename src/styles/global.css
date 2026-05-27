@@ -974,12 +974,14 @@ a {
 
 .lb-stage {
   position: relative;
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: block; /* canvas takes full width; .lb-side overlays on top */
   min-height: 0;
+  overflow: hidden;
 }
 .lb-canvas {
   position: relative;
+  width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
   padding: 24px 32px;
@@ -987,11 +989,17 @@ a {
   overflow: hidden;
   user-select: none;
 }
+/* Force the image (and the lib's inner wrappers) to honor intrinsic ratio.
+   react-zoom-pan-pinch wraps the children in flex containers with default
+   align-items: stretch, which would otherwise stretch the <img> vertically. */
 .lb-canvas img {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  display: block;
+  align-self: center;
+  object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
 }
@@ -1023,12 +1031,21 @@ a {
   right: 18px;
 }
 
+/* Side panel overlays the right of the canvas instead of taking a grid column,
+   so the photo stays centered in the full viewport when the panel is open. */
 .lb-side {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
   width: 380px;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
   overflow-y: auto;
-  background: rgba(8, 8, 10, 0.6);
+  background: rgba(8, 8, 10, 0.78);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   animation: slideUp 0.25s var(--ease);
+  z-index: 2;
 }
 .lb-side .sec {
   padding: 20px 24px;
@@ -1587,14 +1604,48 @@ input[type="range"]::-moz-range-thumb {
     padding: 20px 16px 100px !important;
     max-width: none;
   }
+  /* Topbar collapses on mobile: wrap to two rows, hide labels, icon-only buttons */
   .topbar {
-    padding: 10px 14px;
+    padding: 10px 12px;
     min-height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .topbar .lbl-d {
+    display: none;
+  }
+  .topbar .search {
+    order: 3;
+    flex: 1 1 100%;
+    max-width: none;
+    padding: 8px 12px;
+  }
+  .topbar .search input {
+    font-size: 13px;
   }
   .topbar .seg,
   .topbar kbd {
     display: none;
   }
+  .topbar .topbar-spacer {
+    display: none;
+  }
+  .topbar .btn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  .topbar .btn.primary {
+    padding: 8px 10px;
+  }
+  .topbar > .row:first-child {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .topbar > .row:first-child .serif {
+    font-size: 16px;
+  }
+
   .hero {
     aspect-ratio: 5/6;
   }
@@ -1613,6 +1664,17 @@ input[type="range"]::-moz-range-thumb {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
+  .gcard.big {
+    grid-column: span 2;
+    grid-row: auto;
+  }
+  .gcard.big .gcard-cover {
+    min-height: auto;
+    aspect-ratio: 16/10;
+  }
+  .gcard.big .gcard-meta h3 {
+    font-size: 22px;
+  }
   .gd-hero {
     aspect-ratio: 4/5;
   }
@@ -1620,19 +1682,55 @@ input[type="range"]::-moz-range-thumb {
     grid-template-columns: 1fr 1fr;
     gap: 14px;
   }
+  /* Lightbox: hide secondary actions, drop the side panel, narrower padding */
+  .lb-top {
+    padding: 12px 14px;
+    flex-wrap: nowrap;
+  }
+  .lb-top .filename {
+    font-size: 12px;
+  }
+  .lb-top .meta {
+    font-size: 10.5px;
+  }
   .lb-actions .btn {
     display: none;
   }
+  .lb-actions {
+    gap: 4px;
+  }
+  .lb-canvas {
+    padding: 12px 14px;
+  }
+  .lb-nav {
+    width: 38px;
+    height: 38px;
+  }
+  .lb-nav.prev {
+    left: 8px;
+  }
+  .lb-nav.next {
+    right: 8px;
+  }
   .lb-side {
+    /* On mobile we hide entirely — could be a bottom-sheet in a future commit */
     display: none;
   }
   .lb-strip {
     display: none;
+  }
+  .lb-hint {
+    bottom: 10px;
+    font-size: 9.5px;
   }
   .modal-card {
     border-radius: 18px;
   }
   .bulkbar > .inner {
     padding: 12px 14px;
+    flex-wrap: wrap;
+  }
+  .bulkbar .count {
+    width: 100%;
   }
 }

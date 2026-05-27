@@ -82,10 +82,11 @@ export default function Topbar({ title, breadcrumb }: Props) {
         <kbd>⌘K</kbd>
       </form>
       <div className="topbar-spacer" />
-      <button className="btn primary" onClick={openUploader}>
-        <Icons.Upload size={15} /> Subir fotos
+      <button className="btn primary" onClick={openUploader} aria-label="Subir fotos">
+        <Icons.Upload size={15} />
+        <span className="lbl-d">Subir fotos</span>
       </button>
-      <form method="POST" action="/api/auth/logout" style={{ margin: 0 }}>
+      <form method="POST" action="/api/auth/logout" style={{ margin: 0 }} className="lbl-d">
         <button type="submit" className="btn ghost sm">
           Salir
         </button>

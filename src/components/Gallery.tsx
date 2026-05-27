@@ -754,15 +754,19 @@ function Lightbox({
                 wrapperStyle={{
                   width: "100%",
                   height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: isZoomed ? "grab" : "default",
                 }}
-                contentStyle={{ width: "100%", height: "100%" }}
+                /* No contentStyle override: lib's fit-content sizes the
+                   content to the img's intrinsic dimensions, and the img's
+                   own max-width/max-height (CSS) cap it to the viewport. */
               >
                 <img
                   src={photoUrl(photo)}
                   alt={photo.name}
                   draggable={false}
-                  style={{ maxHeight: "calc(100vh - 240px)" }}
                 />
               </TransformComponent>
             </TransformWrapper>

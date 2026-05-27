@@ -60,6 +60,25 @@ db.exec(
   `UPDATE photos SET developed_at = uploaded_at WHERE developed_at = 0`,
 );
 
+// Tags (many-to-many with photos)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tags (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS photo_tags (
+    photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+    tag_id   INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    added_at INTEGER NOT NULL,
+    PRIMARY KEY (photo_id, tag_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_pt_photo ON photo_tags(photo_id);
+  CREATE INDEX IF NOT EXISTS idx_pt_tag   ON photo_tags(tag_id);
+`);
+
 // Galleries (many-to-many with photos)
 db.exec(`
   CREATE TABLE IF NOT EXISTS galleries (
