@@ -199,7 +199,7 @@ export default function DevelopPanel({
         </div>
       </header>
 
-      <div className="lb-stage">
+      <div className="lb-stage with-edit">
         <div className="lb-canvas">
           <img
             src={baseUrl}

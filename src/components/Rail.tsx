@@ -58,8 +58,9 @@ export default function Rail({ current }: Props) {
   };
 
   const items: { id: Props["current"]; icon: ReactNode; label: string; href: string }[] = [
-    { id: "galleries", icon: <Icons.Folder />, label: "Galerías", href: "/" },
+    { id: "home", icon: <Icons.Home />, label: "Inicio", href: "/" },
     { id: "photos", icon: <Icons.Photos />, label: "Fotos", href: "/?view=photos" },
+    { id: "galleries", icon: <Icons.Folder />, label: "Galerías", href: "/?view=galleries" },
     { id: "favorites", icon: <Icons.Heart />, label: "Favoritas", href: "/?view=favorites" },
     { id: "tags", icon: <Icons.Tag />, label: "Etiquetas", href: "/?view=tags" },
   ];

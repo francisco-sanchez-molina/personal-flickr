@@ -984,6 +984,10 @@ a {
 .lb-stage.with-info {
   grid-template-columns: 1fr 320px;
 }
+/* Develop panel keeps its tools floating on the right. */
+.lb-stage.with-edit {
+  grid-template-columns: 1fr 360px;
+}
 .lb-canvas {
   position: relative;
   width: 100%;
@@ -2092,9 +2096,37 @@ input[type="range"]::-moz-range-thumb {
   .lb-nav.next {
     right: 8px;
   }
-  .lb-side {
-    /* On mobile we hide entirely — could be a bottom-sheet in a future commit */
+  /* Info panel hides on mobile (we don't have a bottom-sheet for it yet),
+     but the Develop tools stay as a bottom sheet. */
+  .lb-side:not(.edit-side) {
     display: none;
+  }
+  .lb-stage.with-edit {
+    grid-template-columns: 1fr;
+  }
+  .lb-side.edit-side {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 55vh;
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px 18px 0 0;
+    background: rgba(8, 8, 10, 0.95);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    z-index: 3;
+  }
+  .lb-side.edit-side::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 99px;
+    background: rgba(245, 243, 238, 0.3);
+    margin: 8px auto 0;
   }
   .lb-strip {
     display: none;

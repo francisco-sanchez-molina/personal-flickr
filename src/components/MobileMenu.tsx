@@ -87,7 +87,11 @@ export default function MobileMenu({ open, onClose, current }: Props) {
         <SheetDescription>Navegación y ajustes de Personal Flickr</SheetDescription>
 
         <SheetSection>
-          <SheetItem as="a" href="/" active={current === "galleries"}>
+          <SheetItem as="a" href="/" active={current === "home"}>
+            <Icons.Home size={18} />
+            <span>Inicio</span>
+          </SheetItem>
+          <SheetItem as="a" href="/?view=galleries" active={current === "galleries"}>
             <Icons.Folder size={18} />
             <span>Galerías</span>
           </SheetItem>

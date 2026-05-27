@@ -14,6 +14,7 @@ const tagParam = Astro.url.searchParams.get("tag");
 const q = (Astro.url.searchParams.get("q") ?? "").trim();
 
 const view:
+  | "home"
   | "galleries"
   | "photos"
   | "favorites"
@@ -21,22 +22,27 @@ const view:
   | "tags"
   | "search" = q
   ? "search"
-  : viewParam === "photos"
-    ? "photos"
-    : viewParam === "favorites"
-      ? "favorites"
-      : viewParam === "orphans"
-        ? "orphans"
-        : viewParam === "tags"
-          ? "tags"
-          : "galleries";
+  : viewParam === "galleries"
+    ? "galleries"
+    : viewParam === "photos"
+      ? "photos"
+      : viewParam === "favorites"
+        ? "favorites"
+        : viewParam === "orphans"
+          ? "orphans"
+          : viewParam === "tags"
+            ? "tags"
+            : "home";
 
-// Compute the data each view needs
+// Per-view data fetching
 let photos: ReturnType<typeof photoQueries.list> = [];
 let galleries: ReturnType<typeof galleryQueries.list> = [];
 let orphanCount = 0;
 let tags: ReturnType<typeof tagQueries.list> = [];
 let activeTag: ReturnType<typeof tagQueries.byName> = null;
+let recentPhotos: ReturnType<typeof photoQueries.list> = [];
+let totalPhotoCount = 0;
+let featuredGallery: (typeof galleries)[number] | null = null;
 
 if (view === "search") {
   photos = dbSearch.photos(q);
@@ -53,9 +59,19 @@ if (view === "search") {
     activeTag = tagQueries.byName(tagParam);
     if (activeTag) photos = tagQueries.photosOfTag(activeTag.id);
   }
-} else {
+} else if (view === "galleries") {
   galleries = galleryQueries.list();
   orphanCount = photoQueries.countOrphans();
+} else {
+  // Home: hero + galleries strip + recent photos
+  galleries = galleryQueries.list();
+  orphanCount = photoQueries.countOrphans();
+  // Featured = most-recently-updated gallery with a cover photo. Falls back
+  // to the first gallery if nothing has a cover yet.
+  featuredGallery =
+    galleries.find((g) => g.cover_name) ?? galleries[0] ?? null;
+  totalPhotoCount = photoQueries.count();
+  recentPhotos = photoQueries.listRecent(24);
 }
 
 const railCurrent =
@@ -65,46 +81,31 @@ const railCurrent =
       ? "photos"
       : view === "tags"
         ? "tags"
-        : "galleries";
+        : view === "galleries"
+          ? "galleries"
+          : "home";
 
-const eyebrowText =
-  view === "search"
-    ? "Resultados"
-    : view === "favorites"
-      ? "Tu selección"
-      : view === "photos"
-        ? "Biblioteca completa"
-        : view === "orphans"
-          ? "Smart album"
-          : view === "tags"
-            ? activeTag
-              ? "Etiqueta"
-              : "Organizadas por concepto"
-            : "Colecciones temáticas";
-
-const heading =
-  view === "search"
-    ? `“${q}”`
-    : view === "favorites"
-      ? "Favoritas"
-      : view === "photos"
-        ? "Todas las fotos"
-        : view === "orphans"
-          ? "Sin galería"
-          : view === "tags"
-            ? activeTag
-              ? activeTag.name
-              : "Etiquetas"
-            : "Galerías";
+function relativeTime(ts: number): string {
+  const diff = Date.now() - ts;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "hoy";
+  if (days === 1) return "ayer";
+  if (days < 30) return `hace ${days} días`;
+  const months = Math.floor(days / 30);
+  if (months === 1) return "hace 1 mes";
+  if (months < 12) return `hace ${months} meses`;
+  const years = Math.floor(days / 365);
+  return years === 1 ? "hace 1 año" : `hace ${years} años`;
+}
 ---
 
-<Base current={railCurrent}>
+<Base current={railCurrent} topbarTitle={view === "home" ? "Inicio" : undefined}>
   <main class="main">
-    {/* View toggle (hidden when actively searching to keep results uncluttered) */}
+    {/* Tabs (hidden on Home and Search) */}
     {
-      view !== "search" && (
+      view !== "search" && view !== "home" && (
         <nav class="tabs">
-          <a href="/" class:list={{ on: view === "galleries" }}>
+          <a href="/?view=galleries" class:list={{ on: view === "galleries" }}>
             Galerías
           </a>
           <a href="/?view=photos" class:list={{ on: view === "photos" }}>
@@ -121,7 +122,72 @@ const heading =
     }
 
     {
-      view === "galleries" ? (
+      view === "home" ? (
+        <>
+          {/* Featured hero */}
+          {featuredGallery && featuredGallery.cover_name && (
+            <a
+              href={`/g/${featuredGallery.slug}`}
+              class="hero"
+              style="display:block;text-decoration:none;color:inherit;"
+            >
+              <img
+                src={`/files/photo/${encodeURIComponent(featuredGallery.cover_name)}?v=${featuredGallery.cover_developed_at ?? 0}`}
+                alt={featuredGallery.name}
+              />
+              <div class="hero-grade" />
+              <div class="hero-body">
+                <div>
+                  <div class="hero-eyebrow">
+                    Galería destacada · {featuredGallery.photo_count}{" "}
+                    {featuredGallery.photo_count === 1 ? "foto" : "fotos"}
+                  </div>
+                  <h1 class="hero-title">{featuredGallery.name}</h1>
+                  <div class="hero-meta">
+                    {featuredGallery.description
+                      ? `${featuredGallery.description} · `
+                      : ""}
+                    última edición {relativeTime(featuredGallery.updated_at)}
+                  </div>
+                </div>
+                <div class="hero-cta">
+                  <button class="btn primary" type="button">
+                    ▷ Ver galería
+                  </button>
+                </div>
+              </div>
+            </a>
+          )}
+
+          {/* Galleries strip */}
+          <section style="margin-bottom:48px;">
+            <GalleriesGrid
+              client:load
+              initial={galleries}
+              orphanCount={orphanCount}
+              featured={false}
+            />
+          </section>
+
+          {/* Recent photos */}
+          {recentPhotos.length > 0 && (
+            <section>
+              <div class="section-head">
+                <div>
+                  <div class="h-eyebrow" style="margin-bottom:8px;">
+                    Subidas recientes
+                  </div>
+                  <h2>Últimas fotos</h2>
+                </div>
+                <span class="count-chip">
+                  {recentPhotos.length} de {totalPhotoCount}
+                </span>
+              </div>
+              <Gallery client:load initial={recentPhotos} />
+            </section>
+          )}
+        </>
+      ) : view === "galleries" ? (
         <GalleriesGrid
           client:load
           initial={galleries}
@@ -132,9 +198,9 @@ const heading =
           <div class="section-head">
             <div>
               <div class="h-eyebrow" style="margin-bottom:8px;">
-                {eyebrowText}
+                Organizadas por concepto
               </div>
-              <h2>{heading}</h2>
+              <h2>Etiquetas</h2>
             </div>
             <span class="count-chip">{tags.length} etiquetas</span>
           </div>
@@ -163,56 +229,54 @@ const heading =
           )}
         </section>
       ) : view === "search" ? (
-        <>
-          <section>
-            <div class="section-head">
-              <div>
-                <div class="h-eyebrow" style="margin-bottom:8px;">
-                  {eyebrowText}
-                </div>
-                <h2>{heading}</h2>
+        <section>
+          <div class="section-head">
+            <div>
+              <div class="h-eyebrow" style="margin-bottom:8px;">
+                Resultados
               </div>
-              <span class="count-chip">
-                {photos.length} {photos.length === 1 ? "foto" : "fotos"} ·{" "}
-                {galleries.length}{" "}
-                {galleries.length === 1 ? "galería" : "galerías"}
-              </span>
+              <h2>“{q}”</h2>
             </div>
-            <a
-              href="/"
-              class="btn ghost sm"
-              style="margin-bottom:18px;display:inline-flex;"
-            >
-              ← Limpiar
-            </a>
-            {galleries.length > 0 && (
-              <div style="margin-bottom:32px;">
-                <div class="h-eyebrow" style="margin-bottom:10px;">
-                  Galerías
-                </div>
-                <GalleriesGrid
-                  client:load
-                  initial={galleries}
-                  orphanCount={0}
-                  featured={false}
-                />
+            <span class="count-chip">
+              {photos.length} {photos.length === 1 ? "foto" : "fotos"} ·{" "}
+              {galleries.length}{" "}
+              {galleries.length === 1 ? "galería" : "galerías"}
+            </span>
+          </div>
+          <a
+            href="/"
+            class="btn ghost sm"
+            style="margin-bottom:18px;display:inline-flex;"
+          >
+            ← Limpiar
+          </a>
+          {galleries.length > 0 && (
+            <div style="margin-bottom:32px;">
+              <div class="h-eyebrow" style="margin-bottom:10px;">
+                Galerías
               </div>
-            )}
-            {photos.length > 0 ? (
-              <div>
-                <div class="h-eyebrow" style="margin-bottom:10px;">
-                  Fotos
-                </div>
-                <Gallery client:load initial={photos} />
+              <GalleriesGrid
+                client:load
+                initial={galleries}
+                orphanCount={0}
+                featured={false}
+              />
+            </div>
+          )}
+          {photos.length > 0 ? (
+            <div>
+              <div class="h-eyebrow" style="margin-bottom:10px;">
+                Fotos
               </div>
-            ) : galleries.length === 0 ? (
-              <div class="empty">
-                <div class="big serif">Sin resultados.</div>
-                <div>Prueba con otra palabra.</div>
-              </div>
-            ) : null}
-          </section>
-        </>
+              <Gallery client:load initial={photos} />
+            </div>
+          ) : galleries.length === 0 ? (
+            <div class="empty">
+              <div class="big serif">Sin resultados.</div>
+              <div>Prueba con otra palabra.</div>
+            </div>
+          ) : null}
+        </section>
       ) : (
         <section>
           <div class="section-head">
@@ -228,9 +292,23 @@ const heading =
                 </nav>
               )}
               <div class="h-eyebrow" style="margin-bottom:8px;">
-                {eyebrowText}
+                {view === "favorites"
+                  ? "Tu selección"
+                  : view === "photos"
+                    ? "Biblioteca completa"
+                    : view === "orphans"
+                      ? "Smart album"
+                      : "Etiqueta"}
               </div>
-              <h2>{heading}</h2>
+              <h2>
+                {view === "favorites"
+                  ? "Favoritas"
+                  : view === "photos"
+                    ? "Todas las fotos"
+                    : view === "orphans"
+                      ? "Sin galería"
+                      : activeTag?.name}
+              </h2>
             </div>
             <span class="count-chip">
               {photos.length} {photos.length === 1 ? "foto" : "fotos"}

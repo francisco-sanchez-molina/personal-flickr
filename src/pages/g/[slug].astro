@@ -35,7 +35,7 @@ const totalSize = photos.reduce((acc, p) => acc + (p.size_bytes ?? 0), 0);
 
 <Base
   current="galleries"
-  breadcrumb={{ parent: "Galerías", parentHref: "/", title: gallery.name }}
+  breadcrumb={{ parent: "Galerías", parentHref: "/?view=galleries", title: gallery.name }}
   currentGallery={{ id: gallery.id, name: gallery.name }}
 >
   <main class="main">
