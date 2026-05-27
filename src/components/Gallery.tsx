@@ -530,9 +530,13 @@ function Lightbox({
   const [scale, setScale] = useState(1);
   const transformRef = useRef<ReactZoomPanPinchRef>(null);
 
-  // Swipe / drag-to-navigate (only at scale=1)
+  // Swipe / drag-to-navigate (only at scale=1).
+  //   - dragging: pointer is currently down and we're following the finger.
+  //   - transitioning: brief window after committing a swipe where we reset
+  //     translateX to 0 with no animation, before re-enabling the transition.
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const startRef = useRef({ x: 0, y: 0, t: 0 });
   const axisRef = useRef<"none" | "x" | "y">("none");
   const activePointers = useRef(new Set<number>());
@@ -541,6 +545,27 @@ function Lightbox({
     transformRef.current?.resetTransform(0);
     setScale(1);
   }, [photo.id]);
+
+  // Preload prev / next (and one beyond) so swipe-to-load feels instant.
+  // The browser caches by URL, so dropping these Image() refs is enough.
+  useEffect(() => {
+    if (photos.length <= 1) return;
+    const fetched: HTMLImageElement[] = [];
+    for (const offset of [1, -1, 2, -2]) {
+      const i = (index + offset + photos.length) % photos.length;
+      if (i === index) continue;
+      const img = new Image();
+      img.decoding = "async";
+      img.src = photoUrl(photos[i]);
+      fetched.push(img);
+    }
+    return () => {
+      // Cancel pending downloads if we navigate before they finish (clears src).
+      fetched.forEach((img) => {
+        img.src = "";
+      });
+    };
+  }, [index, photos]);
 
   useEffect(() => {
     const onChange = () => {
@@ -605,6 +630,30 @@ function Lightbox({
       setDragX(Math.sign(dx) * eased);
     }
   };
+  /**
+   * Animate the current photo all the way off-screen in `direction`, then
+   * swap the active photo and snap translateX back to 0 with no animation
+   * (so the new photo appears centered, not flying in from the wrong side).
+   * Result feels like a real carousel — no more rubber-band-and-then-jump.
+   */
+  const commitSwipe = (direction: 1 | -1) => {
+    const width = window.innerWidth;
+    setDragX(direction * width);
+    window.setTimeout(() => {
+      setTransitioning(true);
+      setDragX(0);
+      if (direction < 0) {
+        onIndex((index + 1) % photos.length);
+      } else {
+        onIndex((index - 1 + photos.length) % photos.length);
+      }
+      // Re-enable the transition next frame, once React has committed.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setTransitioning(false));
+      });
+    }, 220);
+  };
+
   const finishDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     activePointers.current.delete(e.pointerId);
     if (!dragging) return;
@@ -617,15 +666,18 @@ function Lightbox({
       axisRef.current === "x" &&
       (Math.abs(dx) > 60 || Math.abs(vx) > 0.6);
     if (commit) {
-      if (dx < 0) onIndex((index + 1) % photos.length);
-      else onIndex((index - 1 + photos.length) % photos.length);
+      commitSwipe(dx < 0 ? -1 : 1);
+    } else {
+      setDragX(0);
     }
-    setDragX(0);
   };
 
   const stageImgStyle: React.CSSProperties = {
     transform: `translateX(${dragX}px)`,
-    transition: dragging ? "none" : "transform 180ms ease-out",
+    transition:
+      dragging || transitioning
+        ? "none"
+        : "transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1)",
     width: "100%",
     height: "100%",
     display: "flex",
@@ -750,20 +802,29 @@ function Lightbox({
                   height: "100%",
                   cursor: isZoomed ? "grab" : "default",
                 }}
-                contentStyle={{ width: "100%", height: "100%" }}
+                contentStyle={{
+                  width: "100%",
+                  height: "100%",
+                  // Override the lib's default align-items: stretch which
+                  // was stretching the <img> vertically for landscape photos.
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                {/* width/height 100% gives the <img> a definite box so
-                    object-fit can letterbox the picture preserving its
-                    aspect ratio — this also forces the lib's flex content
-                    to lay out the image at the center of its container. */}
+                {/* Viewport-relative max constraints so the image's intrinsic
+                    aspect always wins. width/height auto + max-* lets the
+                    browser size the picture to the smaller of the two
+                    constraints — no stretching, no cropping. */}
                 <img
                   src={photoUrl(photo)}
                   alt={photo.name}
                   draggable={false}
                   style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
+                    maxWidth: "100%",
+                    maxHeight: "calc(100vh - 200px)",
+                    width: "auto",
+                    height: "auto",
                     display: "block",
                   }}
                 />
