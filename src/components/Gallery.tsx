@@ -9,6 +9,7 @@ import DevelopPanel, {
   type DevelopParams,
 } from "./DevelopPanel";
 import GalleryPicker from "./GalleryPicker";
+import BulkActionBar from "./BulkActionBar";
 
 interface Photo {
   id: number;
@@ -67,6 +68,111 @@ export default function Gallery({
 }) {
   const [photos, setPhotos] = useState<Photo[]>(initial);
   const [active, setActive] = useState<number | null>(null);
+
+  // ── Bulk selection mode ────────────────────────────────────────────
+  // selected = set of photo IDs. selectMode is derived: any selection ON.
+  // anchorIndex is used for shift+click range select.
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const anchorIndexRef = useRef<number | null>(null);
+  // True while we're "in" multi-select mode: clicks toggle, no lightbox.
+  // We also enter this mode via long-press on mobile.
+  const [forcedSelectMode, setForcedSelectMode] = useState(false);
+  const selectMode = forcedSelectMode || selected.size > 0;
+
+  const clearSelection = useCallback(() => {
+    setSelected(new Set());
+    setForcedSelectMode(false);
+    anchorIndexRef.current = null;
+  }, []);
+
+  const toggleSelected = useCallback((id: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  /** Click on a thumbnail. Behavior depends on selectMode + modifiers. */
+  const onThumbClick = useCallback(
+    (idx: number, e: React.MouseEvent) => {
+      const photo = photos[idx];
+      if (!photo) return;
+
+      // Range select via shift+click (only relevant in select mode or to enter it).
+      if (e.shiftKey && anchorIndexRef.current != null) {
+        const a = Math.min(anchorIndexRef.current, idx);
+        const b = Math.max(anchorIndexRef.current, idx);
+        setSelected((prev) => {
+          const next = new Set(prev);
+          for (let i = a; i <= b; i++) next.add(photos[i].id);
+          return next;
+        });
+        return;
+      }
+
+      // Cmd/Ctrl+click toggles single without opening
+      if (e.metaKey || e.ctrlKey) {
+        toggleSelected(photo.id);
+        anchorIndexRef.current = idx;
+        return;
+      }
+
+      // In select mode, normal click toggles.
+      if (selectMode) {
+        toggleSelected(photo.id);
+        anchorIndexRef.current = idx;
+        return;
+      }
+
+      // Default: open the lightbox.
+      setActive(idx);
+    },
+    [photos, selectMode, toggleSelected],
+  );
+
+  // Long-press on a thumb (touch) enters select mode and selects it.
+  const longPressTimer = useRef<number | null>(null);
+  const onThumbPointerDown = useCallback(
+    (idx: number, e: React.PointerEvent) => {
+      if (e.pointerType !== "touch") return;
+      if (selectMode) return; // already in mode, regular click handles
+      longPressTimer.current = window.setTimeout(() => {
+        const photo = photos[idx];
+        if (!photo) return;
+        setForcedSelectMode(true);
+        setSelected(new Set([photo.id]));
+        anchorIndexRef.current = idx;
+        // Haptic feedback if available
+        if ("vibrate" in navigator) navigator.vibrate?.(20);
+      }, 450);
+    },
+    [photos, selectMode],
+  );
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current != null) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  // Esc cancels selection / Cmd-A selects all (only when not in lightbox)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (active != null) return; // lightbox owns the keyboard
+      if (e.key === "Escape" && selected.size > 0) {
+        e.preventDefault();
+        clearSelection();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        setSelected(new Set(photos.map((p) => p.id)));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, photos, selected.size, clearSelection]);
 
   useEffect(() => {
     // Newly-uploaded photos only enter the "all photos" view, not a
@@ -140,29 +246,143 @@ export default function Gallery({
     );
   }
 
+  const bulkRemoveFromGallery = useCallback(async () => {
+    if (galleryId == null) return;
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (
+      !confirm(
+        `¿Quitar ${ids.length} foto${ids.length === 1 ? "" : "s"} de esta galería?`,
+      )
+    )
+      return;
+    await Promise.all(
+      ids.map((id) =>
+        fetch(`/api/galleries/${galleryId}/photos/${id}`, { method: "DELETE" }),
+      ),
+    );
+    setPhotos((p) => p.filter((x) => !selected.has(x.id)));
+    clearSelection();
+  }, [galleryId, selected, clearSelection]);
+
+  const bulkDelete = useCallback(async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (
+      !confirm(
+        `¿Eliminar ${ids.length} foto${ids.length === 1 ? "" : "s"} del disco? Esto es irreversible.`,
+      )
+    )
+      return;
+    await Promise.all(
+      ids.map((id) => fetch(`/api/photos/${id}`, { method: "DELETE" })),
+    );
+    setPhotos((p) => p.filter((x) => !selected.has(x.id)));
+    clearSelection();
+  }, [selected, clearSelection]);
+
   return (
     <>
+      {/* Top toolbar: select toggle + count */}
+      <div className="mb-3 flex items-center justify-between text-sm">
+        <div className="text-neutral-400">
+          {selectMode ? (
+            <span>
+              <span className="font-medium text-neutral-100">
+                {selected.size}
+              </span>{" "}
+              seleccionada{selected.size === 1 ? "" : "s"} · click para
+              alternar · shift para rango
+            </span>
+          ) : (
+            <span className="text-neutral-600">
+              click para abrir · shift+click para seleccionar
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {selectMode ? (
+            <>
+              <button
+                onClick={() =>
+                  setSelected(new Set(photos.map((p) => p.id)))
+                }
+                className="rounded-md border border-neutral-800 px-2 py-1 text-xs hover:bg-neutral-800"
+              >
+                Todas
+              </button>
+              <button
+                onClick={clearSelection}
+                className="rounded-md border border-neutral-800 px-2 py-1 text-xs hover:bg-neutral-800"
+              >
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setForcedSelectMode(true)}
+              className="rounded-md border border-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+            >
+              Seleccionar
+            </button>
+          )}
+        </div>
+      </div>
+
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {photos.map((p, i) => (
-          <li
-            key={p.id}
-            className="group relative aspect-square cursor-zoom-in overflow-hidden rounded-lg bg-neutral-900"
-            onClick={() => setActive(i)}
-          >
-            <img
-              src={thumbUrl(p)}
-              alt={p.name}
-              loading="lazy"
-              className="h-full w-full object-cover transition group-hover:scale-105"
-            />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1 text-[11px] opacity-0 transition group-hover:opacity-100">
-              <div className="truncate">{p.name}</div>
-              <div className="text-neutral-400">
-                {p.width}×{p.height} · {fmtSize(p.size_bytes)}
+        {photos.map((p, i) => {
+          const isSelected = selected.has(p.id);
+          return (
+            <li
+              key={p.id}
+              className={[
+                "group relative aspect-square overflow-hidden rounded-lg bg-neutral-900 transition",
+                selectMode ? "cursor-pointer" : "cursor-zoom-in",
+                isSelected
+                  ? "ring-2 ring-pink-500 ring-offset-2 ring-offset-neutral-950"
+                  : "",
+              ].join(" ")}
+              onClick={(e) => onThumbClick(i, e)}
+              onPointerDown={(e) => onThumbPointerDown(i, e)}
+              onPointerUp={cancelLongPress}
+              onPointerCancel={cancelLongPress}
+              onPointerLeave={cancelLongPress}
+            >
+              <img
+                src={thumbUrl(p)}
+                alt={p.name}
+                loading="lazy"
+                draggable={false}
+                className={[
+                  "h-full w-full object-cover transition",
+                  selectMode && !isSelected ? "opacity-60" : "",
+                  !selectMode ? "group-hover:scale-105" : "",
+                ].join(" ")}
+              />
+
+              {/* Selection checkmark / indicator */}
+              {selectMode && (
+                <div
+                  className={[
+                    "pointer-events-none absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs font-bold transition",
+                    isSelected
+                      ? "border-pink-500 bg-pink-500 text-white"
+                      : "border-white/70 bg-black/30 text-transparent",
+                  ].join(" ")}
+                >
+                  ✓
+                </div>
+              )}
+
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1 text-[11px] opacity-0 transition group-hover:opacity-100">
+                <div className="truncate">{p.name}</div>
+                <div className="text-neutral-400">
+                  {p.width}×{p.height} · {fmtSize(p.size_bytes)}
+                </div>
               </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
 
       {active != null && photos[active] && (
@@ -180,6 +400,18 @@ export default function Gallery({
               develop_params: paramsJson,
             })
           }
+        />
+      )}
+
+      {selected.size > 0 && (
+        <BulkActionBar
+          count={selected.size}
+          selectedIds={Array.from(selected)}
+          galleryId={galleryId}
+          onCancel={clearSelection}
+          onRemoveFromGallery={bulkRemoveFromGallery}
+          onDelete={bulkDelete}
+          onAdded={clearSelection}
         />
       )}
     </>
