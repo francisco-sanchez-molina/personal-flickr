@@ -4,7 +4,6 @@ import Gallery from "~/components/Gallery.tsx";
 import GalleriesGrid from "~/components/GalleriesGrid.tsx";
 import { galleryQueries, photoQueries } from "~/lib/db";
 
-// Default landing = Galerías. Photos, Favoritas and Orphans are opt-in.
 const viewParam = Astro.url.searchParams.get("view");
 const view: "galleries" | "photos" | "favorites" | "orphans" =
   viewParam === "photos"
@@ -26,44 +25,40 @@ const photos =
 
 const galleries = view === "galleries" ? galleryQueries.list() : [];
 const orphanCount = view === "galleries" ? photoQueries.countOrphans() : 0;
+
+const railCurrent =
+  view === "favorites"
+    ? "favorites"
+    : view === "photos"
+      ? "photos"
+      : "galleries";
+
+const eyebrowText =
+  view === "favorites"
+    ? "Tu selección"
+    : view === "photos"
+      ? "Biblioteca completa"
+      : view === "orphans"
+        ? "Smart album"
+        : "Colecciones temáticas";
+const heading =
+  view === "favorites"
+    ? "Favoritas"
+    : view === "photos"
+      ? "Todas las fotos"
+      : view === "orphans"
+        ? "Sin galería"
+        : "Galerías";
 ---
 
-<Base>
-  <div class="space-y-6">
-    {/* View toggle — Galerías is the default landing tab */}
-    <nav class="flex gap-1 border-b border-neutral-800">
-      <a
-        href="/"
-        class:list={[
-          "rounded-t-md px-4 py-2 text-sm font-medium transition",
-          view === "galleries" || view === "orphans"
-            ? "border-b-2 border-pink-500 text-neutral-100"
-            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100",
-        ]}
-      >
-        Galerías
-      </a>
-      <a
-        href="/?view=photos"
-        class:list={[
-          "rounded-t-md px-4 py-2 text-sm font-medium transition",
-          view === "photos"
-            ? "border-b-2 border-pink-500 text-neutral-100"
-            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100",
-        ]}
-      >
-        Fotos
-      </a>
-      <a
-        href="/?view=favorites"
-        class:list={[
-          "rounded-t-md px-4 py-2 text-sm font-medium transition",
-          view === "favorites"
-            ? "border-b-2 border-amber-400 text-neutral-100"
-            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100",
-        ]}
-      >
-        <span style="color:#fbbf24">★</span> Favoritas
+<Base current={railCurrent}>
+  <main class="main">
+    {/* View toggle */}
+    <nav class="tabs">
+      <a href="/" class:list={{ on: view === "galleries" }}>Galerías</a>
+      <a href="/?view=photos" class:list={{ on: view === "photos" }}>Fotos</a>
+      <a href="/?view=favorites" class:list={{ on: view === "favorites" }}>
+        <span style="color:var(--accent)">★</span> Favoritas
       </a>
     </nav>
 
@@ -74,32 +69,53 @@ const orphanCount = view === "galleries" ? photoQueries.countOrphans() : 0;
           initial={galleries}
           orphanCount={orphanCount}
         />
-      ) : view === "orphans" ? (
-        <section>
-          <nav class="mb-3 text-sm">
-            <a href="/" class="text-neutral-400 hover:text-pink-300">
-              ← Galerías
-            </a>
-          </nav>
-          <h2 class="mb-3 text-sm font-medium uppercase tracking-wider text-neutral-400">
-            Sin galería{" "}
-            <span class="ml-1 text-neutral-600">({photos.length})</span>
-          </h2>
-          <p class="mb-3 text-xs text-neutral-500">
-            Fotos que aún no están en ninguna galería. Al añadir una a una
-            galería desaparece de esta lista.
-          </p>
-          <Gallery client:load initial={photos} orphans />
-        </section>
       ) : (
         <section>
-          <h2 class="mb-3 text-sm font-medium uppercase tracking-wider text-neutral-400">
-            {view === "favorites" ? "Favoritas" : "Todas las fotos"}{" "}
-            <span class="ml-1 text-neutral-600">({photos.length})</span>
-          </h2>
-          <Gallery client:load initial={photos} />
+          <div class="section-head">
+            <div>
+              <div class="h-eyebrow" style="margin-bottom:8px;">
+                {eyebrowText}
+              </div>
+              <h2>{heading}</h2>
+            </div>
+            <span class="count-chip">
+              {photos.length} {photos.length === 1 ? "foto" : "fotos"}
+            </span>
+          </div>
+          {view === "orphans" && (
+            <p
+              style="margin:-6px 0 22px;color:var(--ink-3);font-size:12.5px;font-family:var(--f-mono);letter-spacing:.02em;"
+            >
+              Fotos que aún no están en ninguna galería. Al añadirlas a una galería
+              desaparecen de esta lista.
+            </p>
+          )}
+          {photos.length === 0 ? (
+            <div class="empty">
+              <div class="big serif">
+                {view === "favorites"
+                  ? "Aún no tienes favoritas."
+                  : view === "orphans"
+                    ? "Todo está clasificado."
+                    : "Aún no hay fotos."}
+              </div>
+              <div>
+                {view === "favorites"
+                  ? "Toca la estrella en cualquier foto para guardarla aquí."
+                  : view === "orphans"
+                    ? "Cada foto está en al menos una galería."
+                    : "Usa Subir fotos para empezar."}
+              </div>
+            </div>
+          ) : (
+            <Gallery
+              client:load
+              initial={photos}
+              orphans={view === "orphans"}
+            />
+          )}
         </section>
       )
     }
-  </div>
+  </main>
 </Base>

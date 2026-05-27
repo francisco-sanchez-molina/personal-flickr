@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { Icons } from "./icons";
 
 interface UploadedPhoto {
   id: number;
@@ -11,7 +12,13 @@ interface UploadedPhoto {
 interface QueueItem {
   id: string;
   file: File;
-  status: "pending" | "checking" | "conflict" | "uploading" | "done" | "error";
+  status:
+    | "pending"
+    | "checking"
+    | "conflict"
+    | "uploading"
+    | "done"
+    | "error";
   finalName?: string;
   suggested?: string | null;
   progress?: number;
@@ -23,15 +30,12 @@ function fmtSize(b: number): string {
   if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} KB`;
   return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 }
-
 function uid() {
   return Math.random().toString(36).slice(2);
 }
 
 interface UploaderProps {
-  /** If set, every uploaded photo is auto-added to this gallery. */
   defaultGalleryId?: number;
-  /** Pretty name for the chip shown in the dropzone. */
   defaultGalleryName?: string;
 }
 
@@ -48,7 +52,11 @@ export default function Uploader({
   }, []);
 
   const doUpload = useCallback(
-    async (item: QueueItem, decision: "create" | "replace" | "rename", finalName?: string) => {
+    async (
+      item: QueueItem,
+      decision: "create" | "replace" | "rename",
+      finalName?: string,
+    ) => {
       update(item.id, { status: "uploading", progress: 0 });
       const fd = new FormData();
       fd.append("file", item.file);
@@ -56,35 +64,37 @@ export default function Uploader({
       if (finalName) fd.append("finalName", finalName);
 
       try {
-        const res = await new Promise<{ ok: boolean; status: number; body: any }>(
-          (resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open("POST", "/api/upload");
-            xhr.upload.onprogress = (e) => {
-              if (e.lengthComputable) {
-                update(item.id, { progress: e.loaded / e.total });
-              }
-            };
-            xhr.onerror = () => reject(new Error("network"));
-            xhr.onload = () => {
-              try {
-                const body = JSON.parse(xhr.responseText);
-                resolve({ ok: xhr.status < 400, status: xhr.status, body });
-              } catch {
-                resolve({ ok: false, status: xhr.status, body: { error: "bad response" } });
-              }
-            };
-            xhr.send(fd);
-          },
-        );
+        const res = await new Promise<{
+          ok: boolean;
+          status: number;
+          body: { error?: string; detail?: string; finalName?: string; suggested?: string; photo?: UploadedPhoto };
+        }>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", "/api/upload");
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              update(item.id, { progress: e.loaded / e.total });
+            }
+          };
+          xhr.onerror = () => reject(new Error("network"));
+          xhr.onload = () => {
+            try {
+              const body = JSON.parse(xhr.responseText);
+              resolve({ ok: xhr.status < 400, status: xhr.status, body });
+            } catch {
+              resolve({
+                ok: false,
+                status: xhr.status,
+                body: { error: "bad response" },
+              });
+            }
+          };
+          xhr.send(fd);
+        });
 
-        if (res.ok) {
+        if (res.ok && res.body.photo) {
           update(item.id, { status: "done", progress: 1 });
-          const photo = res.body.photo as UploadedPhoto;
-
-          // If we're uploading inside a gallery, auto-add the photo to it.
-          // We don't block the success state on this — it's a non-critical
-          // best-effort call; failures get logged but don't error the upload.
+          const photo = res.body.photo;
           if (defaultGalleryId != null) {
             try {
               await fetch(`/api/galleries/${defaultGalleryId}/photos`, {
@@ -92,11 +102,10 @@ export default function Uploader({
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ photo_ids: [photo.id] }),
               });
-            } catch (err) {
-              console.warn("auto-add to gallery failed", err);
+            } catch {
+              /* best-effort */
             }
           }
-
           window.dispatchEvent(
             new CustomEvent("photo:added", {
               detail: { photo, galleryId: defaultGalleryId ?? null },
@@ -109,10 +118,16 @@ export default function Uploader({
             suggested: res.body.suggested,
           });
         } else {
-          update(item.id, { status: "error", error: res.body?.detail ?? res.body?.error ?? "error" });
+          update(item.id, {
+            status: "error",
+            error: res.body?.detail ?? res.body?.error ?? "error",
+          });
         }
-      } catch (e: any) {
-        update(item.id, { status: "error", error: String(e?.message ?? e) });
+      } catch (e: unknown) {
+        update(item.id, {
+          status: "error",
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     },
     [update, defaultGalleryId],
@@ -145,8 +160,11 @@ export default function Uploader({
             update(item.id, { status: "pending", finalName: body.finalName });
             doUpload({ ...item, finalName: body.finalName }, "create");
           }
-        } catch (e: any) {
-          update(item.id, { status: "error", error: String(e?.message ?? e) });
+        } catch (e: unknown) {
+          update(item.id, {
+            status: "error",
+            error: e instanceof Error ? e.message : String(e),
+          });
         }
       }
     },
@@ -158,26 +176,36 @@ export default function Uploader({
     if (fs.length) enqueue(fs);
     if (inputRef.current) inputRef.current.value = "";
   };
-
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     const fs = Array.from(e.dataTransfer.files ?? []);
     if (fs.length) enqueue(fs);
   };
-
   const dismiss = (id: string) =>
     setQueue((q) => q.filter((it) => it.id !== id));
 
   return (
-    <section className="space-y-4">
+    <div style={{ display: "grid", gap: 14 }}>
       {defaultGalleryId != null && defaultGalleryName && (
-        <div className="rounded-md border border-pink-500/30 bg-pink-500/5 px-3 py-2 text-sm text-pink-200">
-          <span className="text-pink-400">→</span> Las fotos que subas se
-          añadirán a <strong className="font-medium">{defaultGalleryName}</strong>
+        <div
+          style={{
+            padding: "10px 14px",
+            border: "1px solid color-mix(in srgb, var(--accent) 30%, var(--line))",
+            background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+            borderRadius: 10,
+            fontSize: 13,
+            color: "var(--ink)",
+          }}
+        >
+          <span style={{ color: "var(--accent)", marginRight: 6 }}>→</span>
+          Las fotos se añadirán a{" "}
+          <strong style={{ fontWeight: 600 }}>{defaultGalleryName}</strong>
         </div>
       )}
+
       <div
+        className={`dropzone ${dragOver ? "over" : ""}`}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
@@ -185,42 +213,40 @@ export default function Uploader({
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
-        className={[
-          "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition",
-          dragOver
-            ? "border-pink-400 bg-pink-500/5"
-            : "border-neutral-800 bg-neutral-900/40 hover:border-neutral-700 hover:bg-neutral-900/60",
-        ].join(" ")}
+        role="button"
+        tabIndex={0}
       >
-        <p className="text-lg font-medium">Arrastra fotos aquí</p>
-        <p className="mt-1 text-sm text-neutral-400">
-          o haz click para seleccionar · JPEG / PNG / HEIC / CR2 / CR3
-        </p>
+        <div className="icon">
+          <Icons.Upload size={22} />
+        </div>
+        <div className="big serif">Arrastra fotos aquí</div>
+        <div className="sub">
+          o haz click para seleccionar · JPEG / PNG / HEIC / CR2 / CR3 / RAF / ARW
+        </div>
         <input
           ref={inputRef}
           type="file"
           multiple
           accept="image/*,.cr2,.CR2,.cr3,.CR3,.nef,.NEF,.arw,.ARW,.dng,.DNG,.raf,.RAF,.orf,.ORF,.rw2,.RW2"
-          className="hidden"
+          style={{ display: "none" }}
           onChange={onPick}
         />
       </div>
 
       {queue.length > 0 && (
-        <ul className="space-y-2">
+        <div className="up-list">
           {queue.map((it) => (
             <QueueRow
               key={it.id}
               item={it}
               onReplace={() => doUpload(it, "replace", it.finalName)}
               onRename={() => doUpload(it, "rename", it.suggested ?? undefined)}
-              onCancel={() => dismiss(it.id)}
               onDismiss={() => dismiss(it.id)}
             />
           ))}
-        </ul>
+        </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -228,104 +254,100 @@ function QueueRow({
   item,
   onReplace,
   onRename,
-  onCancel,
   onDismiss,
 }: {
   item: QueueItem;
   onReplace: () => void;
   onRename: () => void;
-  onCancel: () => void;
   onDismiss: () => void;
 }) {
+  const status = item.status;
+  const pct = Math.round((item.progress ?? 0) * 100);
   return (
-    <li className="rounded-lg border border-neutral-800 bg-neutral-900/40 px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="truncate text-sm font-medium">{item.file.name}</div>
-          <div className="text-xs text-neutral-400">
-            {fmtSize(item.file.size)} · {statusLabel(item)}
-          </div>
-        </div>
-        {item.status === "done" && (
-          <button
-            className="text-xs text-neutral-500 hover:text-neutral-200"
-            onClick={onDismiss}
-          >
-            ✕
-          </button>
-        )}
-        {item.status === "error" && (
-          <button
-            className="text-xs text-neutral-500 hover:text-neutral-200"
-            onClick={onDismiss}
-          >
-            ✕
-          </button>
-        )}
+    <div className="up-row">
+      <div className="up-thumb">
+        <Icons.Photos size={20} />
       </div>
-
-      {(item.status === "checking" ||
-        item.status === "pending" ||
-        item.status === "uploading") && (
-        <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-neutral-800">
-          <div
-            className="h-full bg-pink-500 transition-all"
-            style={{
-              width: `${Math.max(5, Math.round((item.progress ?? 0) * 100))}%`,
-              opacity: item.status === "uploading" ? 1 : 0.5,
-            }}
-          />
+      <div className="up-info">
+        <div className="name">{item.file.name}</div>
+        <div className="sub">
+          {fmtSize(item.file.size)} ·{" "}
+          {status === "checking" && "comprobando…"}
+          {status === "pending" && "en cola"}
+          {status === "uploading" && `subiendo ${pct}%`}
+          {status === "conflict" && (
+            <>
+              ya existe{" "}
+              <code
+                style={{
+                  background: "var(--bg-3)",
+                  padding: "1px 5px",
+                  borderRadius: 4,
+                }}
+              >
+                {item.finalName}
+              </code>
+            </>
+          )}
+          {status === "done" && "listo"}
+          {status === "error" && `error: ${item.error}`}
         </div>
-      )}
-
-      {item.status === "conflict" && (
-        <div className="mt-3 rounded-md border border-amber-700/40 bg-amber-500/5 p-3">
-          <p className="text-sm">
-            Ya existe <code className="rounded bg-neutral-800 px-1">{item.finalName}</code>. ¿Qué hacemos?
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              onClick={onReplace}
-              className="rounded-md bg-amber-500 px-3 py-1 text-sm font-medium text-neutral-950 hover:bg-amber-400"
-            >
+        {(status === "uploading" || status === "checking") && (
+          <div className="progress">
+            <span style={{ width: `${Math.max(5, pct)}%` }} />
+          </div>
+        )}
+        {status === "conflict" && (
+          <div className="up-conflict">
+            <button className="btn sm" onClick={onReplace}>
               Reemplazar
             </button>
-            <button
-              onClick={onRename}
-              className="rounded-md bg-pink-500 px-3 py-1 text-sm font-medium text-white hover:bg-pink-600"
-            >
+            <button className="btn sm primary" onClick={onRename}>
               Renombrar → {item.suggested}
             </button>
-            <button
-              onClick={onCancel}
-              className="rounded-md border border-neutral-700 px-3 py-1 text-sm text-neutral-300 hover:bg-neutral-800"
-            >
+            <button className="btn sm ghost" onClick={onDismiss}>
               Cancelar
             </button>
           </div>
-        </div>
-      )}
-
-      {item.status === "error" && (
-        <p className="mt-2 text-sm text-red-400">Error: {item.error}</p>
-      )}
-    </li>
+        )}
+      </div>
+      <div className={`up-status ${status === "done" ? "done" : status === "error" ? "err" : ""}`}>
+        {status === "done" ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Icons.Check size={14} /> OK
+          </span>
+        ) : status === "error" ? (
+          "ERR"
+        ) : status === "uploading" ? (
+          `${pct}%`
+        ) : status === "conflict" ? (
+          "!"
+        ) : (
+          "…"
+        )}
+        {(status === "done" || status === "error") && (
+          <button
+            className="iconbtn"
+            onClick={onDismiss}
+            style={{
+              width: 24,
+              height: 24,
+              marginLeft: 8,
+              display: "inline-grid",
+              verticalAlign: "middle",
+            }}
+            aria-label="Descartar"
+          >
+            <Icons.Close size={12} />
+          </button>
+        )}
+      </div>
+    </div>
   );
-}
-
-function statusLabel(it: QueueItem): string {
-  switch (it.status) {
-    case "checking":
-      return "comprobando nombre…";
-    case "pending":
-      return "en cola";
-    case "uploading":
-      return `subiendo ${Math.round((it.progress ?? 0) * 100)}%`;
-    case "conflict":
-      return "colisión de nombre";
-    case "done":
-      return "✓ subida";
-    case "error":
-      return "error";
-  }
 }

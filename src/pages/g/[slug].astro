@@ -5,7 +5,7 @@ import GalleryHeader from "~/components/GalleryHeader.tsx";
 import { galleryQueries } from "~/lib/db";
 
 const slug = Astro.params.slug;
-if (!slug) return Astro.redirect("/?view=galleries");
+if (!slug) return Astro.redirect("/");
 
 const gallery = galleryQueries.bySlug(slug);
 if (!gallery) {
@@ -13,21 +13,97 @@ if (!gallery) {
 }
 
 const photos = galleryQueries.photosOf(gallery.id);
+const cover = photos[0];
+
+const dates = photos
+  .map((p) => p.uploaded_at)
+  .filter((n): n is number => typeof n === "number");
+const fmtDate = (ts: number) =>
+  new Date(ts).toLocaleDateString("es-ES", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+const fmtSize = (n: number) =>
+  n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / (1024 * 1024)).toFixed(1)} MB`;
+const period =
+  dates.length > 0
+    ? `${fmtDate(Math.min(...dates))} → ${fmtDate(Math.max(...dates))}`
+    : "—";
+const totalSize = photos.reduce((acc, p) => acc + (p.size_bytes ?? 0), 0);
 ---
 
 <Base
-  title={`${gallery.name} · Personal Flickr`}
+  current="galleries"
+  breadcrumb={{ parent: "Galerías", parentHref: "/", title: gallery.name }}
   currentGallery={{ id: gallery.id, name: gallery.name }}
 >
-  <div class="space-y-4">
-    <nav class="text-sm">
-      <a href="/" class="text-neutral-400 hover:text-pink-300">
-        ← Galerías
-      </a>
-    </nav>
+  <main class="main">
+    {/* Hero */}
+    <section class="gd-hero">
+      {
+        cover ? (
+          <img
+            src={`/files/photo/${encodeURIComponent(cover.name)}?v=${cover.developed_at}`}
+            alt={gallery.name}
+          />
+        ) : (
+          <div
+            style="position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-3);font-family:var(--f-display);font-size:48px;"
+          >
+            ◌
+          </div>
+        )
+      }
+      <div class="hero-grade" />
+      <div class="hero-body">
+        <div>
+          <div class="hero-eyebrow">
+            {gallery.description ?? "Galería"} · {photos.length}{" "}
+            {photos.length === 1 ? "foto" : "fotos"}
+          </div>
+          <h1 class="hero-title">{gallery.name}</h1>
+        </div>
+        <div class="hero-cta">
+          <GalleryHeader
+            client:load
+            gallery={gallery}
+            initialPhotoCount={photos.length}
+            inline
+          />
+        </div>
+      </div>
+    </section>
 
-    <GalleryHeader client:load gallery={gallery} initialPhotoCount={photos.length} />
+    {/* Meta strip */}
+    <div class="gd-meta">
+      <div>
+        <div class="label">Descripción</div>
+        <div class="val s">{gallery.description ?? "Sin descripción"}</div>
+      </div>
+      <div>
+        <div class="label">Fotos</div>
+        <div class="val">{photos.length}</div>
+      </div>
+      <div>
+        <div class="label">Periodo</div>
+        <div class="val s">{period}</div>
+      </div>
+      <div>
+        <div class="label">Tamaño total</div>
+        <div class="val s">{fmtSize(totalSize)}</div>
+      </div>
+    </div>
 
-    <Gallery client:load initial={photos} galleryId={gallery.id} />
-  </div>
+    {
+      photos.length === 0 ? (
+        <div class="empty">
+          <div class="big serif">Galería vacía.</div>
+          <div>Usa Subir fotos arriba — se añadirán aquí automáticamente.</div>
+        </div>
+      ) : (
+        <Gallery client:load initial={photos} galleryId={gallery.id} />
+      )
+    }
+  </main>
 </Base>

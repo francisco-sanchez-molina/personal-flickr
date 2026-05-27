@@ -1,83 +1,93 @@
 ---
 import "~/styles/global.css";
+import Rail from "~/components/Rail.tsx";
+import Topbar from "~/components/Topbar.tsx";
 import UploaderModal from "~/components/UploaderModal.tsx";
 
 interface Props {
   title?: string;
+  /** Active rail item. Defaults to "galleries". */
+  current?:
+    | "home"
+    | "photos"
+    | "galleries"
+    | "favorites"
+    | "tags"
+    | "map"
+    | "other";
+  /** Title shown in the topbar (or used as the right side of a breadcrumb). */
+  topbarTitle?: string;
+  breadcrumb?: { parent: string; parentHref: string; title: string };
   /** When set, uploads default to this gallery (used on /g/{slug}). */
   currentGallery?: { id: number; name: string };
 }
-const { title = "Personal Flickr", currentGallery } = Astro.props;
+const {
+  title = "Personal Flickr",
+  current = "galleries",
+  topbarTitle,
+  breadcrumb,
+  currentGallery,
+} = Astro.props;
 const authed = Astro.locals.user != null;
 ---
 
 <!doctype html>
-<html lang="es" class="h-full bg-neutral-950 text-neutral-100">
+<html lang="es" data-mood="estudio" data-theme="dark" data-density="regular">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
     <title>{title}</title>
+
+    {/* Editorial display + UI fonts from the design handoff */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@300;400;500&display=swap"
+    />
+
+    {/* Apply persisted mood / theme BEFORE hydration to avoid a flash */}
+    <script is:inline>
+      (function () {
+        try {
+          var m = localStorage.getItem("pf:mood");
+          var t = localStorage.getItem("pf:theme");
+          var d = localStorage.getItem("pf:density");
+          if (m) document.documentElement.setAttribute("data-mood", m);
+          if (t) document.documentElement.setAttribute("data-theme", t);
+          if (d) document.documentElement.setAttribute("data-density", d);
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body class="h-full antialiased">
-    {/* Make the gallery context available to the React UploaderModal island
-        BEFORE hydration so it picks the default destination on first render. */}
+  <body>
     {
       currentGallery && (
         <script is:inline define:vars={{ g: currentGallery }}>
-          window.__currentGallery = g;
+          {`window.__currentGallery = ${JSON.stringify(currentGallery)};`}
         </script>
       )
     }
 
-    <header
-      class="sticky top-0 z-20 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur"
-    >
-      <div
-        class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3"
-      >
-        <a href="/" class="flex items-center gap-2 font-semibold tracking-tight">
-          <span class="text-pink-400">●</span> Personal Flickr
-        </a>
-        <div class="flex items-center gap-2">
-          {
-            authed && (
-              <button
-                type="button"
-                id="open-uploader"
-                class="rounded-md bg-pink-500 px-3 py-1 text-sm font-medium text-white hover:bg-pink-600"
-              >
-                + Subir fotos
-              </button>
-              <form method="POST" action="/api/auth/logout">
-                <button
-                  type="submit"
-                  class="rounded-md px-3 py-1 text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
-                >
-                  Salir
-                </button>
-              </form>
-            )
-          }
-        </div>
-      </div>
-    </header>
-
     {
-      authed && (
-        <>
-          <UploaderModal client:load />
-          <script is:inline>
-            document
-              .getElementById("open-uploader")
-              ?.addEventListener("click", () => {
-                window.dispatchEvent(new CustomEvent("uploader:open"));
-              });
-          </script>
-        </>
+      authed ? (
+        <div class="app">
+          <Rail client:load current={current} />
+          <div class="canvas">
+            <Topbar
+              client:load
+              title={topbarTitle}
+              breadcrumb={breadcrumb}
+            />
+            <slot />
+          </div>
+        </div>
+      ) : (
+        <slot />
       )
     }
 
-    <main class="mx-auto max-w-7xl px-4 py-6"><slot /></main>
+    {authed && <UploaderModal client:load />}
   </body>
 </html>

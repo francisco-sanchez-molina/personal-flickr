@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { Icons } from "./icons";
 
 interface GallerySummary {
   id: number;
@@ -10,18 +11,25 @@ interface GallerySummary {
   cover_developed_at: number | null;
 }
 
-function thumbUrl(coverName: string, developedAt: number | null): string {
+function coverUrl(coverName: string, developedAt: number | null): string {
   const v = developedAt ?? 0;
-  return `/files/thumb/${encodeURIComponent(coverName)}?v=${v}`;
+  return `/files/photo/${encodeURIComponent(coverName)}?v=${v}`;
+}
+
+function thumbStripUrl(name: string, developedAt: number | null): string {
+  const v = developedAt ?? 0;
+  return `/files/thumb/${encodeURIComponent(name)}?v=${v}`;
 }
 
 export default function GalleriesGrid({
   initial,
   orphanCount = 0,
+  featured = true,
 }: {
   initial: GallerySummary[];
-  /** Photos with no membership. Renders a special leading tile when > 0. */
   orphanCount?: number;
+  /** When true, the first gallery is rendered as a 2×2 'big' featured card. */
+  featured?: boolean;
 }) {
   const [galleries, setGalleries] = useState<GallerySummary[]>(initial);
   const [creating, setCreating] = useState(false);
@@ -58,116 +66,160 @@ export default function GalleriesGrid({
 
   return (
     <section>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-medium uppercase tracking-wider text-neutral-400">
-          Galerías <span className="ml-1 text-neutral-600">({galleries.length})</span>
-        </h2>
-        {!creating ? (
-          <button
-            onClick={() => setCreating(true)}
-            className="rounded-md bg-pink-500 px-3 py-1 text-sm font-medium text-white hover:bg-pink-600"
-          >
-            + Nueva
-          </button>
-        ) : (
-          <form
-            className="flex items-center gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              create();
-            }}
-          >
-            <input
-              autoFocus
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Nombre de la galería"
-              className="rounded-md border border-neutral-800 bg-neutral-900 px-2 py-1 text-sm outline-none focus:border-pink-500"
-              maxLength={80}
-            />
-            <button
-              type="submit"
-              className="rounded-md bg-pink-500 px-3 py-1 text-sm font-medium text-white hover:bg-pink-600"
-            >
-              Crear
+      <div className="section-head">
+        <div>
+          <div className="h-eyebrow" style={{ marginBottom: 8 }}>
+            Colecciones temáticas
+          </div>
+          <h2>Galerías</h2>
+        </div>
+        <div className="row">
+          <span className="count-chip">
+            {galleries.length} galerías · {orphanCount} sin clasificar
+          </span>
+          {!creating ? (
+            <button className="btn primary sm" onClick={() => setCreating(true)}>
+              <Icons.Plus size={13} /> Nueva galería
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCreating(false);
-                setNewName("");
-                setError(null);
+          ) : (
+            <form
+              style={{ display: "flex", gap: 6 }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                create();
               }}
-              className="rounded-md border border-neutral-800 px-2 py-1 text-sm text-neutral-400 hover:bg-neutral-800"
             >
-              ✕
-            </button>
-          </form>
-        )}
+              <div className="search" style={{ padding: "6px 10px", minWidth: 180 }}>
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Nombre"
+                  maxLength={80}
+                  style={{ fontSize: 12 }}
+                />
+              </div>
+              <button type="submit" className="btn primary sm">
+                Crear
+              </button>
+              <button
+                type="button"
+                className="btn ghost sm"
+                onClick={() => {
+                  setCreating(false);
+                  setNewName("");
+                  setError(null);
+                }}
+              >
+                ✕
+              </button>
+            </form>
+          )}
+        </div>
       </div>
 
       {error && (
-        <p className="mb-3 rounded-md border border-red-700/40 bg-red-500/10 p-2 text-sm text-red-300">
+        <p
+          style={{
+            margin: "0 0 12px",
+            color: "var(--danger)",
+            fontSize: 12.5,
+            fontFamily: "var(--f-mono)",
+          }}
+        >
           {error}
         </p>
       )}
 
       {galleries.length === 0 && orphanCount === 0 ? (
-        <p className="py-12 text-center text-sm text-neutral-500">
-          Aún no hay galerías. Crea una para empezar a organizar.
-        </p>
+        <div className="empty">
+          <div className="big serif">Aún no hay galerías.</div>
+          <div>Crea una para empezar a organizar.</div>
+        </div>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="gallery-grid">
           {orphanCount > 0 && (
-            <li className="group overflow-hidden rounded-lg border-2 border-dashed border-neutral-700 bg-neutral-900/40 transition hover:border-neutral-500">
-              <a href="/?view=orphans" className="block">
-                <div className="flex aspect-square items-center justify-center bg-neutral-900">
-                  <span className="text-5xl text-neutral-600 transition group-hover:text-neutral-400">
-                    ?
-                  </span>
-                </div>
-                <div className="p-2">
-                  <div className="truncate text-sm font-medium text-neutral-300">
-                    Sin galería
+            <a href="/?view=orphans" className="gcard orphans" aria-label="Fotos sin galería">
+              <div className="gcard-cover">
+                <div className="gcard-empty">?</div>
+              </div>
+              <div className="gcard-meta">
+                <div>
+                  <h3>Sin galería</h3>
+                  <div
+                    style={{
+                      color: "var(--ink-3)",
+                      fontSize: 12,
+                      marginTop: 4,
+                    }}
+                  >
+                    fotos sueltas
                   </div>
-                  <div className="text-xs text-neutral-500">
-                    {orphanCount} {orphanCount === 1 ? "foto" : "fotos"}
-                  </div>
                 </div>
-              </a>
-            </li>
+                <div className="mono">
+                  {String(orphanCount).padStart(3, "0")}
+                </div>
+              </div>
+            </a>
           )}
-          {galleries.map((g) => (
-            <li
+          {galleries.map((g, i) => (
+            <a
               key={g.id}
-              className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/40 transition hover:border-neutral-700"
+              href={`/g/${g.slug}`}
+              className={`gcard${featured && i === 0 && g.cover_name ? " big" : ""}`}
+              aria-label={g.name}
             >
-              <a href={`/g/${g.slug}`} className="block">
-                <div className="aspect-square overflow-hidden bg-neutral-900">
-                  {g.cover_name ? (
-                    <img
-                      src={thumbUrl(g.cover_name, g.cover_developed_at)}
-                      alt={g.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-3xl text-neutral-700">
-                      ◌
+              <div className="gcard-cover">
+                {g.cover_name ? (
+                  <img
+                    src={coverUrl(g.cover_name, g.cover_developed_at)}
+                    alt={g.name}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="gcard-empty">◌</div>
+                )}
+                {g.cover_name && (
+                  <div className="badge">{g.photo_count} fotos</div>
+                )}
+                {g.cover_name && (
+                  <div className="gcard-strip" aria-hidden="true">
+                    {[...Array(4)].map((_, k) => (
+                      <div key={k}>
+                        <img
+                          src={thumbStripUrl(g.cover_name!, g.cover_developed_at)}
+                          alt=""
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="gcard-meta">
+                <div>
+                  <h3>{g.name}</h3>
+                  {g.description && (
+                    <div
+                      style={{
+                        color: "var(--ink-3)",
+                        fontSize: 12,
+                        marginTop: 4,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {g.description}
                     </div>
                   )}
                 </div>
-                <div className="p-2">
-                  <div className="truncate text-sm font-medium">{g.name}</div>
-                  <div className="text-xs text-neutral-400">
-                    {g.photo_count} {g.photo_count === 1 ? "foto" : "fotos"}
-                  </div>
+                <div className="mono">
+                  {String(g.photo_count).padStart(3, "0")}
                 </div>
-              </a>
-            </li>
+              </div>
+            </a>
           ))}
-        </ul>
+        </div>
       )}
     </section>
   );

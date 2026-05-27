@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Icons } from "./icons";
 
 interface Gallery {
   id: number;
@@ -19,11 +20,9 @@ export default function GalleryPicker({
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  // Visual hint while a PUT is in flight (subtle, no blocking spinner)
   const [pendingId, setPendingId] = useState<number | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Load all galleries + the ones this photo belongs to
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -44,13 +43,9 @@ export default function GalleryPicker({
     };
   }, [photoId]);
 
-  // Click outside closes
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (
-        panelRef.current &&
-        !panelRef.current.contains(e.target as Node)
-      ) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
@@ -58,12 +53,6 @@ export default function GalleryPicker({
     return () => document.removeEventListener("mousedown", onClick);
   }, [onClose]);
 
-  /**
-   * Toggle a gallery membership. Optimistic: flip state immediately, then
-   * PUT the new full snapshot. Reverts on failure. On success, broadcasts a
-   * `photo:memberships-changed` event so the page can react (e.g. the Sin
-   * galería list removes the photo as soon as it has any membership).
-   */
   const persistSet = async (next: Set<number>) => {
     setError(null);
     const ids = Array.from(next);
@@ -88,13 +77,11 @@ export default function GalleryPicker({
     const next = new Set(prev);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-
     setSelected(next);
     setPendingId(id);
     try {
       await persistSet(next);
     } catch (e: unknown) {
-      // Revert
       setSelected(prev);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -114,20 +101,16 @@ export default function GalleryPicker({
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
-
       const newId: number = body.gallery.id;
       const next = new Set([...selected, newId]);
       setAll((g) => [body.gallery, ...g]);
       setSelected(next);
       setNewName("");
       setCreating(false);
-      // Persist the new membership immediately
       setPendingId(newId);
       try {
         await persistSet(next);
       } catch (e: unknown) {
-        // The gallery was created, just the photo membership failed.
-        // Revert membership only.
         setSelected(selected);
         setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -141,101 +124,105 @@ export default function GalleryPicker({
   return (
     <div
       ref={panelRef}
-      className="absolute right-2 top-full z-50 mt-2 w-72 rounded-lg border border-neutral-800 bg-neutral-950 shadow-2xl"
+      className="pop"
+      style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: 280 }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2 text-sm">
-        <span className="font-medium">Añadir a galerías</span>
-        <button
-          onClick={onClose}
-          className="text-neutral-500 hover:text-neutral-100"
-          aria-label="Cerrar"
-        >
-          ✕
-        </button>
-      </div>
+      <h5>Añadir a galerías</h5>
 
-      <div className="max-h-72 overflow-y-auto p-2">
+      <div style={{ maxHeight: 280, overflowY: "auto", margin: "0 -4px" }}>
         {loading ? (
-          <p className="px-2 py-3 text-sm text-neutral-500">cargando…</p>
+          <p style={{ margin: 0, padding: "6px 4px", color: "var(--ink-3)", fontSize: 12.5 }}>
+            cargando…
+          </p>
         ) : all.length === 0 ? (
-          <p className="px-2 py-3 text-sm text-neutral-500">
+          <p style={{ margin: 0, padding: "6px 4px", color: "var(--ink-3)", fontSize: 12.5 }}>
             Aún no hay galerías. Crea la primera ↓
           </p>
         ) : (
-          <ul className="space-y-0.5">
-            {all.map((g) => {
-              const isPending = pendingId === g.id;
-              return (
-                <li key={g.id}>
-                  <label
-                    className={[
-                      "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-neutral-900",
-                      isPending ? "opacity-60" : "",
-                    ].join(" ")}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.has(g.id)}
-                      onChange={() => toggle(g.id)}
-                      className="accent-pink-500"
-                    />
-                    <span className="truncate">{g.name}</span>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
+          all.map((g) => (
+            <label
+              key={g.id}
+              className={`row-check ${pendingId === g.id ? "pending" : ""}`}
+              style={{ padding: "6px 4px" }}
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(g.id)}
+                onChange={() => toggle(g.id)}
+              />
+              <span
+                style={{
+                  flex: 1,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {g.name}
+              </span>
+            </label>
+          ))
         )}
       </div>
 
-      <div className="border-t border-neutral-800 p-2">
-        {creating ? (
-          <form
-            className="flex items-center gap-1"
-            onSubmit={(e) => {
-              e.preventDefault();
-              createNew();
-            }}
-          >
+      <div style={{ height: 1, background: "var(--line)", margin: "8px -4px" }} />
+
+      {creating ? (
+        <form
+          style={{ display: "flex", gap: 6 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            createNew();
+          }}
+        >
+          <div className="search" style={{ padding: "5px 8px", flex: 1 }}>
             <input
               autoFocus
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Nombre"
               maxLength={80}
-              className="min-w-0 flex-1 rounded-md border border-neutral-800 bg-neutral-900 px-2 py-1 text-sm outline-none focus:border-pink-500"
             />
-            <button
-              type="submit"
-              className="rounded-md bg-pink-500 px-2 py-1 text-xs font-medium text-white hover:bg-pink-600"
-            >
-              Crear
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCreating(false);
-                setNewName("");
-              }}
-              className="px-1 text-neutral-500 hover:text-neutral-100"
-              aria-label="Cancelar"
-            >
-              ✕
-            </button>
-          </form>
-        ) : (
-          <button
-            onClick={() => setCreating(true)}
-            className="w-full rounded-md border border-dashed border-neutral-700 px-2 py-1.5 text-sm text-neutral-400 hover:border-neutral-500 hover:text-neutral-100"
-          >
-            + Nueva galería
+          </div>
+          <button type="submit" className="btn primary sm">
+            Crear
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={() => {
+              setCreating(false);
+              setNewName("");
+            }}
+          >
+            ✕
+          </button>
+        </form>
+      ) : (
+        <button
+          className="btn ghost sm"
+          onClick={() => setCreating(true)}
+          style={{
+            width: "100%",
+            justifyContent: "center",
+            borderStyle: "dashed",
+            borderColor: "var(--line-2)",
+          }}
+        >
+          <Icons.Plus size={13} /> Nueva galería
+        </button>
+      )}
 
       {error && (
-        <p className="border-t border-red-700/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+        <p
+          style={{
+            margin: "10px 0 0",
+            color: "var(--danger)",
+            fontSize: 12,
+            fontFamily: "var(--f-mono)",
+          }}
+        >
           {error}
         </p>
       )}

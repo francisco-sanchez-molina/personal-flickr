@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
 import Uploader from "./Uploader";
+import { Icons } from "./icons";
 
 interface CurrentGallery {
   id: number;
   name: string;
 }
 
-/**
- * Read the current gallery context (if any) from a window-global that the
- * Astro layout writes during SSR. The variable is set BEFORE React hydrates,
- * so it's available on first render.
- */
 function readCurrentGallery(): CurrentGallery | null {
   if (typeof window === "undefined") return null;
   const g = (window as unknown as { __currentGallery?: CurrentGallery })
@@ -23,40 +19,33 @@ export default function UploaderModal() {
   const [dragging, setDragging] = useState(false);
   const currentGallery = readCurrentGallery();
 
-  // Open via custom event from the header button
   useEffect(() => {
     const onOpen = () => setOpen(true);
     window.addEventListener("uploader:open", onOpen);
     return () => window.removeEventListener("uploader:open", onOpen);
   }, []);
 
-  // Auto-open when the user drags a file anywhere on the page
   useEffect(() => {
-    let dragDepth = 0;
+    let depth = 0;
     const onDragEnter = (e: DragEvent) => {
-      // Only react to file drags, not text drags
       if (!e.dataTransfer?.types?.includes("Files")) return;
-      dragDepth++;
+      depth++;
       setDragging(true);
       setOpen(true);
     };
     const onDragLeave = () => {
-      dragDepth--;
-      if (dragDepth <= 0) {
-        dragDepth = 0;
+      depth--;
+      if (depth <= 0) {
+        depth = 0;
         setDragging(false);
       }
     };
     const onDrop = () => {
-      dragDepth = 0;
+      depth = 0;
       setDragging(false);
     };
     const onDragOver = (e: DragEvent) => {
-      // Prevent the browser from opening the file in a new tab if the user
-      // drops outside the dropzone.
-      if (e.dataTransfer?.types?.includes("Files")) {
-        e.preventDefault();
-      }
+      if (e.dataTransfer?.types?.includes("Files")) e.preventDefault();
     };
     window.addEventListener("dragenter", onDragEnter);
     window.addEventListener("dragleave", onDragLeave);
@@ -70,7 +59,6 @@ export default function UploaderModal() {
     };
   }, []);
 
-  // Esc closes (but not while dragging — that'd be weird)
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -84,28 +72,23 @@ export default function UploaderModal() {
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center bg-black/70 p-4 pt-16 sm:pt-24"
+      className="modal"
       onClick={(e) => {
         if (e.target === e.currentTarget) setOpen(false);
       }}
     >
-      <div
-        className="w-full max-w-2xl overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-400">
-            Subir fotos
-          </h2>
+      <div className="modal-card">
+        <div className="modal-head">
+          <h2>Subir fotos</h2>
           <button
+            className="iconbtn"
             onClick={() => setOpen(false)}
-            className="rounded-md px-2 py-1 text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
             aria-label="Cerrar"
           >
-            ✕
+            <Icons.Close size={15} />
           </button>
         </div>
-        <div className="p-4">
+        <div className="modal-body">
           <Uploader
             defaultGalleryId={currentGallery?.id}
             defaultGalleryName={currentGallery?.name}

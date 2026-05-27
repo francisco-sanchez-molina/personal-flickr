@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Icons } from "./icons";
 
 interface Gallery {
   id: number;
@@ -9,17 +10,19 @@ interface Gallery {
 
 export default function GalleryHeader({
   gallery: initialGallery,
-  initialPhotoCount,
+  inline = false,
 }: {
   gallery: Gallery;
-  initialPhotoCount: number;
+  /** Kept for backwards-compat with the page that still passes it. */
+  initialPhotoCount?: number;
+  /** Inline mode shows only action buttons (used inside the hero). */
+  inline?: boolean;
 }) {
   const [gallery, setGallery] = useState(initialGallery);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(gallery.name);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [photoCount] = useState(initialPhotoCount);
 
   const save = async () => {
     setBusy(true);
@@ -32,7 +35,6 @@ export default function GalleryHeader({
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
-      // If the slug changed, navigate to the new URL
       if (body.gallery.slug !== gallery.slug) {
         window.location.href = `/g/${body.gallery.slug}`;
         return;
@@ -70,70 +72,99 @@ export default function GalleryHeader({
     }
   };
 
-  return (
-    <header className="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-800 pb-3">
-      <div className="min-w-0">
-        {editing ? (
-          <form
-            className="flex items-center gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              save();
+  if (inline) {
+    return (
+      <>
+        <button className="btn primary" onClick={() => setEditing((v) => !v)}>
+          <Icons.Sliders size={14} /> Renombrar
+        </button>
+        <button className="btn" onClick={remove} disabled={busy}>
+          <Icons.Trash size={14} /> Eliminar
+        </button>
+        {editing && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 90,
+              background: "rgba(0,0,0,.6)",
+              display: "grid",
+              placeItems: "center",
+              padding: 24,
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setEditing(false);
             }}
           >
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={80}
-              className="rounded-md border border-neutral-800 bg-neutral-900 px-2 py-1 text-2xl font-semibold outline-none focus:border-pink-500"
-            />
-            <button
-              type="submit"
-              disabled={busy}
-              className="rounded-md bg-pink-500 px-3 py-1 text-sm font-medium text-white hover:bg-pink-600 disabled:opacity-50"
+            <div
+              className="modal-card"
+              style={{ width: "min(420px, 100%)", padding: 0 }}
             >
-              Guardar
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEditing(false);
-                setName(gallery.name);
-              }}
-              className="rounded-md border border-neutral-800 px-2 py-1 text-sm text-neutral-400 hover:bg-neutral-800"
-            >
-              Cancelar
-            </button>
-          </form>
-        ) : (
-          <h1 className="truncate text-2xl font-semibold">{gallery.name}</h1>
+              <div className="modal-head">
+                <h2>Renombrar galería</h2>
+                <button
+                  className="iconbtn"
+                  onClick={() => setEditing(false)}
+                  aria-label="Cerrar"
+                >
+                  <Icons.Close size={15} />
+                </button>
+              </div>
+              <div className="modal-body">
+                <form
+                  style={{ display: "grid", gap: 12 }}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    save();
+                  }}
+                >
+                  <div className="search" style={{ padding: 10 }}>
+                    <input
+                      autoFocus
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={80}
+                      placeholder="Nombre"
+                    />
+                  </div>
+                  {error && (
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "var(--danger)",
+                        fontSize: 12.5,
+                        fontFamily: "var(--f-mono)",
+                      }}
+                    >
+                      {error}
+                    </p>
+                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: 8,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => setEditing(false)}
+                    >
+                      Cancelar
+                    </button>
+                    <button type="submit" className="btn primary" disabled={busy}>
+                      Guardar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
         )}
-        <p className="mt-1 text-sm text-neutral-400">
-          {photoCount} {photoCount === 1 ? "foto" : "fotos"}
-        </p>
-        {error && (
-          <p className="mt-2 text-sm text-red-400">{error}</p>
-        )}
-      </div>
+      </>
+    );
+  }
 
-      {!editing && (
-        <div className="flex gap-2">
-          <button
-            onClick={() => setEditing(true)}
-            className="rounded-md border border-neutral-800 px-3 py-1 text-sm hover:bg-neutral-800"
-          >
-            Renombrar
-          </button>
-          <button
-            onClick={remove}
-            disabled={busy}
-            className="rounded-md border border-red-700/40 px-3 py-1 text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50"
-          >
-            Eliminar galería
-          </button>
-        </div>
-      )}
-    </header>
-  );
+  return null;
 }

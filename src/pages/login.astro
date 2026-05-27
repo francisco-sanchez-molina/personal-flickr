@@ -4,28 +4,57 @@ const error = Astro.url.searchParams.get("error");
 ---
 
 <Base title="Login · Personal Flickr">
-  <div class="mx-auto mt-24 max-w-sm">
-    <h1 class="mb-6 text-center text-2xl font-semibold">Entrar</h1>
-    <form method="POST" action="/api/auth/login" class="space-y-3">
-      <input
-        type="password"
-        name="password"
-        placeholder="Contraseña"
-        autofocus
-        required
-        class="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-base outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
-      />
-      {
-        error && (
-          <p class="text-sm text-red-400">Contraseña incorrecta</p>
-        )
-      }
-      <button
-        type="submit"
-        class="w-full rounded-md bg-pink-500 px-3 py-2 font-medium text-white hover:bg-pink-600"
-      >
-        Entrar
-      </button>
-    </form>
-  </div>
+  <main
+    style="min-height:100vh;display:grid;place-items:center;padding:24px;"
+  >
+    <div
+      style="width:min(420px, 100%);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:36px 28px;box-shadow:var(--shadow-card);"
+    >
+      <div style="text-align:center;margin-bottom:24px;">
+        <div
+          class="rail-logo"
+          style="margin:0 auto 16px;width:48px;height:48px;font-size:24px;"
+        >
+          ●
+        </div>
+        <h1
+          class="serif"
+          style="margin:0;font-size:32px;font-weight:400;letter-spacing:-0.02em;"
+        >
+          Personal Flickr
+        </h1>
+        <p
+          class="mono"
+          style="margin-top:6px;color:var(--ink-3);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;"
+        >
+          Galería privada
+        </p>
+      </div>
+
+      <form method="POST" action="/api/auth/login" style="display:grid;gap:12px;">
+        <div class="search" style="padding:12px 14px;">
+          <input
+            type="password"
+            name="password"
+            placeholder="Contraseña"
+            autofocus
+            required
+            style="font-size:14px;"
+          />
+        </div>
+        {
+          error && (
+            <p
+              style="margin:0;color:var(--danger);font-size:12.5px;font-family:var(--f-mono);"
+            >
+              Contraseña incorrecta
+            </p>
+          )
+        }
+        <button type="submit" class="btn primary" style="justify-content:center;">
+          Entrar
+        </button>
+      </form>
+    </div>
+  </main>
 </Base>
