@@ -109,6 +109,10 @@ export default function MobileMenu({ open, onClose, current }: Props) {
             <Icons.Heart size={18} />
             <span>Favoritas</span>
           </a>
+          <a href="/?view=tags" className={`mm-item ${current === "tags" ? "on" : ""}`}>
+            <Icons.Tag size={18} />
+            <span>Etiquetas</span>
+          </a>
         </nav>
 
         <div className="divider" />

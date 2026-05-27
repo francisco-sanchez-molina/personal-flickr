@@ -200,6 +200,12 @@ export const Icons = {
       <path d="M3 6h18M3 12h18M3 18h18" />
     </S>
   ),
+  Tag: (p: IconProps) => (
+    <S {...p}>
+      <path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9z" />
+      <circle cx="8" cy="8" r="1.5" />
+    </S>
+  ),
   RotL: (p: IconProps) => (
     <S {...p}>
       <path d="M3 12a9 9 0 1 0 3-6.7" />

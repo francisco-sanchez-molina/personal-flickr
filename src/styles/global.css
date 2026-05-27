@@ -1084,6 +1084,95 @@ a {
   font-size: 13px;
 }
 
+/* Filter / index chips (used in /?view=tags etc.) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  font: 11.5px var(--f-mono);
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: transparent;
+  padding: 6px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.chip:hover {
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+.chip.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+
+/* Tag chips */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 11.5px var(--f-mono);
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f5f3ee;
+  padding: 4px 4px 4px 9px;
+  border-radius: 999px;
+}
+.tag .tag-x {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: rgba(245, 243, 238, 0.6);
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.tag .tag-x:hover {
+  color: var(--danger);
+  background: rgba(255, 74, 87, 0.12);
+}
+.tag.add {
+  appearance: none;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  color: rgba(245, 243, 238, 0.55);
+  cursor: pointer;
+  padding: 4px 9px;
+}
+.tag.add:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #f5f3ee;
+}
+.tag-input {
+  font: 11.5px var(--f-mono);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--accent);
+  color: #f5f3ee;
+  padding: 4px 9px;
+  border-radius: 999px;
+  outline: none;
+  min-width: 110px;
+  max-width: 160px;
+}
+
 /* Stylized location map */
 .map {
   position: relative;

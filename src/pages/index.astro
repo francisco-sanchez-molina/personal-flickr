@@ -2,65 +2,123 @@
 import Base from "~/layouts/Base.astro";
 import Gallery from "~/components/Gallery.tsx";
 import GalleriesGrid from "~/components/GalleriesGrid.tsx";
-import { galleryQueries, photoQueries } from "~/lib/db";
+import {
+  galleryQueries,
+  photoQueries,
+  search as dbSearch,
+  tagQueries,
+} from "~/lib/db";
 
 const viewParam = Astro.url.searchParams.get("view");
-const view: "galleries" | "photos" | "favorites" | "orphans" =
-  viewParam === "photos"
+const tagParam = Astro.url.searchParams.get("tag");
+const q = (Astro.url.searchParams.get("q") ?? "").trim();
+
+const view:
+  | "galleries"
+  | "photos"
+  | "favorites"
+  | "orphans"
+  | "tags"
+  | "search" = q
+  ? "search"
+  : viewParam === "photos"
     ? "photos"
     : viewParam === "favorites"
       ? "favorites"
       : viewParam === "orphans"
         ? "orphans"
-        : "galleries";
+        : viewParam === "tags"
+          ? "tags"
+          : "galleries";
 
-const photos =
-  view === "photos"
-    ? photoQueries.list()
-    : view === "favorites"
-      ? photoQueries.listFavorites()
-      : view === "orphans"
-        ? photoQueries.listOrphans()
-        : [];
+// Compute the data each view needs
+let photos: ReturnType<typeof photoQueries.list> = [];
+let galleries: ReturnType<typeof galleryQueries.list> = [];
+let orphanCount = 0;
+let tags: ReturnType<typeof tagQueries.list> = [];
+let activeTag: ReturnType<typeof tagQueries.byName> = null;
 
-const galleries = view === "galleries" ? galleryQueries.list() : [];
-const orphanCount = view === "galleries" ? photoQueries.countOrphans() : 0;
+if (view === "search") {
+  photos = dbSearch.photos(q);
+  galleries = dbSearch.galleries(q);
+} else if (view === "photos") {
+  photos = photoQueries.list();
+} else if (view === "favorites") {
+  photos = photoQueries.listFavorites();
+} else if (view === "orphans") {
+  photos = photoQueries.listOrphans();
+} else if (view === "tags") {
+  tags = tagQueries.list();
+  if (tagParam) {
+    activeTag = tagQueries.byName(tagParam);
+    if (activeTag) photos = tagQueries.photosOfTag(activeTag.id);
+  }
+} else {
+  galleries = galleryQueries.list();
+  orphanCount = photoQueries.countOrphans();
+}
 
 const railCurrent =
   view === "favorites"
     ? "favorites"
     : view === "photos"
       ? "photos"
-      : "galleries";
+      : view === "tags"
+        ? "tags"
+        : "galleries";
 
 const eyebrowText =
-  view === "favorites"
-    ? "Tu selección"
-    : view === "photos"
-      ? "Biblioteca completa"
-      : view === "orphans"
-        ? "Smart album"
-        : "Colecciones temáticas";
+  view === "search"
+    ? "Resultados"
+    : view === "favorites"
+      ? "Tu selección"
+      : view === "photos"
+        ? "Biblioteca completa"
+        : view === "orphans"
+          ? "Smart album"
+          : view === "tags"
+            ? activeTag
+              ? "Etiqueta"
+              : "Organizadas por concepto"
+            : "Colecciones temáticas";
+
 const heading =
-  view === "favorites"
-    ? "Favoritas"
-    : view === "photos"
-      ? "Todas las fotos"
-      : view === "orphans"
-        ? "Sin galería"
-        : "Galerías";
+  view === "search"
+    ? `“${q}”`
+    : view === "favorites"
+      ? "Favoritas"
+      : view === "photos"
+        ? "Todas las fotos"
+        : view === "orphans"
+          ? "Sin galería"
+          : view === "tags"
+            ? activeTag
+              ? activeTag.name
+              : "Etiquetas"
+            : "Galerías";
 ---
 
 <Base current={railCurrent}>
   <main class="main">
-    {/* View toggle */}
-    <nav class="tabs">
-      <a href="/" class:list={{ on: view === "galleries" }}>Galerías</a>
-      <a href="/?view=photos" class:list={{ on: view === "photos" }}>Fotos</a>
-      <a href="/?view=favorites" class:list={{ on: view === "favorites" }}>
-        <span style="color:var(--accent)">★</span> Favoritas
-      </a>
-    </nav>
+    {/* View toggle (hidden when actively searching to keep results uncluttered) */}
+    {
+      view !== "search" && (
+        <nav class="tabs">
+          <a href="/" class:list={{ on: view === "galleries" }}>
+            Galerías
+          </a>
+          <a href="/?view=photos" class:list={{ on: view === "photos" }}>
+            Fotos
+          </a>
+          <a href="/?view=favorites" class:list={{ on: view === "favorites" }}>
+            <span style="color:var(--accent)">★</span> Favoritas
+          </a>
+          <a href="/?view=tags" class:list={{ on: view === "tags" }}>
+            Etiquetas
+          </a>
+        </nav>
+      )
+    }
 
     {
       view === "galleries" ? (
@@ -69,10 +127,106 @@ const heading =
           initial={galleries}
           orphanCount={orphanCount}
         />
+      ) : view === "tags" && !activeTag ? (
+        <section>
+          <div class="section-head">
+            <div>
+              <div class="h-eyebrow" style="margin-bottom:8px;">
+                {eyebrowText}
+              </div>
+              <h2>{heading}</h2>
+            </div>
+            <span class="count-chip">{tags.length} etiquetas</span>
+          </div>
+          {tags.length === 0 ? (
+            <div class="empty">
+              <div class="big serif">Aún no hay etiquetas.</div>
+              <div>
+                Abre una foto y usa la sección "Etiquetas" del panel lateral
+                para añadirlas.
+              </div>
+            </div>
+          ) : (
+            <div class="chips" style="gap:6px;max-width:900px;">
+              {tags.map((t) => (
+                <a
+                  href={`/?view=tags&tag=${encodeURIComponent(t.name)}`}
+                  class="chip"
+                >
+                  {t.name}{" "}
+                  <span style="opacity:.55;margin-left:4px;">
+                    {t.photo_count}
+                  </span>
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : view === "search" ? (
+        <>
+          <section>
+            <div class="section-head">
+              <div>
+                <div class="h-eyebrow" style="margin-bottom:8px;">
+                  {eyebrowText}
+                </div>
+                <h2>{heading}</h2>
+              </div>
+              <span class="count-chip">
+                {photos.length} {photos.length === 1 ? "foto" : "fotos"} ·{" "}
+                {galleries.length}{" "}
+                {galleries.length === 1 ? "galería" : "galerías"}
+              </span>
+            </div>
+            <a
+              href="/"
+              class="btn ghost sm"
+              style="margin-bottom:18px;display:inline-flex;"
+            >
+              ← Limpiar
+            </a>
+            {galleries.length > 0 && (
+              <div style="margin-bottom:32px;">
+                <div class="h-eyebrow" style="margin-bottom:10px;">
+                  Galerías
+                </div>
+                <GalleriesGrid
+                  client:load
+                  initial={galleries}
+                  orphanCount={0}
+                  featured={false}
+                />
+              </div>
+            )}
+            {photos.length > 0 ? (
+              <div>
+                <div class="h-eyebrow" style="margin-bottom:10px;">
+                  Fotos
+                </div>
+                <Gallery client:load initial={photos} />
+              </div>
+            ) : galleries.length === 0 ? (
+              <div class="empty">
+                <div class="big serif">Sin resultados.</div>
+                <div>Prueba con otra palabra.</div>
+              </div>
+            ) : null}
+          </section>
+        </>
       ) : (
         <section>
           <div class="section-head">
             <div>
+              {view === "tags" && activeTag && (
+                <nav style="margin-bottom:10px;font-size:13px;">
+                  <a
+                    href="/?view=tags"
+                    style="color:var(--ink-3);text-decoration:none;"
+                  >
+                    ← Etiquetas
+                  </a>
+                </nav>
+              )}
               <div class="h-eyebrow" style="margin-bottom:8px;">
                 {eyebrowText}
               </div>
@@ -83,11 +237,9 @@ const heading =
             </span>
           </div>
           {view === "orphans" && (
-            <p
-              style="margin:-6px 0 22px;color:var(--ink-3);font-size:12.5px;font-family:var(--f-mono);letter-spacing:.02em;"
-            >
-              Fotos que aún no están en ninguna galería. Al añadirlas a una galería
-              desaparecen de esta lista.
+            <p style="margin:-6px 0 22px;color:var(--ink-3);font-size:12.5px;font-family:var(--f-mono);letter-spacing:.02em;">
+              Fotos que aún no están en ninguna galería. Al añadirlas a una
+              galería desaparecen de esta lista.
             </p>
           )}
           {photos.length === 0 ? (
@@ -97,14 +249,18 @@ const heading =
                   ? "Aún no tienes favoritas."
                   : view === "orphans"
                     ? "Todo está clasificado."
-                    : "Aún no hay fotos."}
+                    : view === "tags"
+                      ? "Sin fotos."
+                      : "Aún no hay fotos."}
               </div>
               <div>
                 {view === "favorites"
                   ? "Toca la estrella en cualquier foto para guardarla aquí."
                   : view === "orphans"
                     ? "Cada foto está en al menos una galería."
-                    : "Usa Subir fotos para empezar."}
+                    : view === "tags"
+                      ? "Esta etiqueta no está en ninguna foto."
+                      : "Usa Subir fotos para empezar."}
               </div>
             </div>
           ) : (

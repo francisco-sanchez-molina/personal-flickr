@@ -1,10 +1,12 @@
 /**
- * Side panel for the lightbox showing EXIF + capture metadata.
- * Renders inside .lb-stage on desktop, slides up from the bottom on mobile
- * (handled by CSS).
+ * Side panel for the lightbox showing EXIF + capture metadata + tags.
+ * Renders inside .lb-stage on desktop as an absolute overlay on the right;
+ * hidden on mobile (≤720px) via CSS.
  */
+import { useEffect, useState } from "react";
 
 interface Photo {
+  id: number;
   name: string;
   width: number;
   height: number;
@@ -20,6 +22,11 @@ interface Photo {
   taken_at: number | null;
   gps_lat: number | null;
   gps_lng: number | null;
+}
+
+interface Tag {
+  id: number;
+  name: string;
 }
 
 function fmtSize(b: number): string {
@@ -132,6 +139,11 @@ export default function LightboxInfo({ photo }: { photo: Photo }) {
         </div>
       )}
 
+      <div className="sec">
+        <h4>Etiquetas</h4>
+        <TagEditor photoId={photo.id} />
+      </div>
+
       {!hasExif && !hasGps && (
         <div className="sec">
           <p
@@ -148,6 +160,146 @@ export default function LightboxInfo({ photo }: { photo: Photo }) {
         </div>
       )}
     </aside>
+  );
+}
+
+function TagEditor({ photoId }: { photoId: number }) {
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/photos/${photoId}/tags`)
+      .then((r) => r.json())
+      .then((body) => {
+        if (cancelled) return;
+        setTags(body.tags ?? []);
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [photoId]);
+
+  const add = async () => {
+    const v = name.trim();
+    if (!v) {
+      setEditing(false);
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/photos/${photoId}/tags`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: v }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
+      setTags(body.tags ?? []);
+      setName("");
+      setEditing(false);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const remove = async (tagId: number) => {
+    // Optimistic
+    const prev = tags;
+    setTags((arr) => arr.filter((t) => t.id !== tagId));
+    try {
+      const res = await fetch(`/api/photos/${photoId}/tags/${tagId}`, {
+        method: "DELETE",
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "error");
+      if (Array.isArray(body.tags)) setTags(body.tags);
+    } catch {
+      setTags(prev);
+    }
+  };
+
+  return (
+    <div className="tag-row">
+      {loading ? (
+        <span
+          style={{
+            font: "11px var(--f-mono)",
+            color: "rgba(245,243,238,.45)",
+            letterSpacing: ".04em",
+          }}
+        >
+          cargando…
+        </span>
+      ) : (
+        tags.map((t) => (
+          <span key={t.id} className="tag">
+            {t.name}
+            <button
+              onClick={() => remove(t.id)}
+              className="tag-x"
+              aria-label={`Quitar ${t.name}`}
+              title={`Quitar ${t.name}`}
+            >
+              ×
+            </button>
+          </span>
+        ))
+      )}
+      {editing ? (
+        <form
+          style={{ display: "inline-flex", gap: 4 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            add();
+          }}
+        >
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => {
+              if (!name.trim()) setEditing(false);
+            }}
+            placeholder="nombre"
+            maxLength={40}
+            disabled={pending}
+            className="tag-input"
+          />
+        </form>
+      ) : (
+        <button
+          onClick={() => setEditing(true)}
+          className="tag add"
+          type="button"
+        >
+          + añadir
+        </button>
+      )}
+      {error && (
+        <div
+          style={{
+            width: "100%",
+            marginTop: 8,
+            fontSize: 11,
+            color: "var(--danger)",
+            fontFamily: "var(--f-mono)",
+          }}
+        >
+          {error}
+        </div>
+      )}
+    </div>
   );
 }
 

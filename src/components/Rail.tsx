@@ -61,6 +61,7 @@ export default function Rail({ current }: Props) {
     { id: "galleries", icon: <Icons.Folder />, label: "Galerías", href: "/" },
     { id: "photos", icon: <Icons.Photos />, label: "Fotos", href: "/?view=photos" },
     { id: "favorites", icon: <Icons.Heart />, label: "Favoritas", href: "/?view=favorites" },
+    { id: "tags", icon: <Icons.Tag />, label: "Etiquetas", href: "/?view=tags" },
   ];
 
   return (

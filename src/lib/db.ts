@@ -459,3 +459,142 @@ export const galleryQueries = {
     },
   ),
 };
+
+// ============================================================
+//  Tags
+// ============================================================
+
+export interface Tag {
+  id: number;
+  name: string;
+  created_at: number;
+}
+export interface TagSummary extends Tag {
+  photo_count: number;
+}
+
+const tagStmts = {
+  byId: db.prepare<[number], Tag>("SELECT * FROM tags WHERE id = ?"),
+  byName: db.prepare<[string], Tag>("SELECT * FROM tags WHERE name = ?"),
+  insert: db.prepare(
+    `INSERT INTO tags (name, created_at) VALUES (?, ?)`,
+  ),
+  // List with photo counts, ordered by popularity then alphabetically
+  list: db.prepare<[], TagSummary>(`
+    SELECT t.*, COALESCE(c.cnt, 0) AS photo_count
+    FROM tags t
+    LEFT JOIN (
+      SELECT tag_id, COUNT(*) AS cnt
+      FROM photo_tags
+      GROUP BY tag_id
+    ) c ON c.tag_id = t.id
+    ORDER BY photo_count DESC, t.name COLLATE NOCASE ASC
+  `),
+  tagsOfPhoto: db.prepare<[number], Tag>(`
+    SELECT t.* FROM tags t
+    JOIN photo_tags pt ON pt.tag_id = t.id
+    WHERE pt.photo_id = ?
+    ORDER BY t.name COLLATE NOCASE ASC
+  `),
+  photosOfTag: db.prepare<[number], Photo>(`
+    SELECT p.* FROM photos p
+    JOIN photo_tags pt ON pt.photo_id = p.id
+    WHERE pt.tag_id = ?
+    ORDER BY p.uploaded_at DESC, p.id DESC
+  `),
+  addMember: db.prepare(
+    `INSERT OR IGNORE INTO photo_tags (photo_id, tag_id, added_at)
+     VALUES (?, ?, ?)`,
+  ),
+  removeMember: db.prepare(
+    `DELETE FROM photo_tags WHERE photo_id = ? AND tag_id = ?`,
+  ),
+  // Garbage-collect tags that no longer point to any photo (called after remove)
+  pruneOrphans: db.prepare(
+    `DELETE FROM tags
+     WHERE id NOT IN (SELECT DISTINCT tag_id FROM photo_tags)`,
+  ),
+};
+
+export const tagQueries = {
+  byId: (id: number) => tagStmts.byId.get(id) ?? null,
+  byName: (name: string) => tagStmts.byName.get(name) ?? null,
+  list: () => tagStmts.list.all(),
+  tagsOfPhoto: (photoId: number) => tagStmts.tagsOfPhoto.all(photoId),
+  photosOfTag: (tagId: number) => tagStmts.photosOfTag.all(tagId),
+
+  /** Find an existing tag by name (case-insensitive) or create it. */
+  upsert: (name: string): Tag => {
+    const trimmed = name.trim();
+    const existing = tagStmts.byName.get(trimmed);
+    if (existing) return existing;
+    const r = tagStmts.insert.run(trimmed, Date.now());
+    return tagStmts.byId.get(Number(r.lastInsertRowid))!;
+  },
+
+  addMember: (photoId: number, tagId: number) => {
+    tagStmts.addMember.run(photoId, tagId, Date.now());
+  },
+  removeMember: (photoId: number, tagId: number) => {
+    tagStmts.removeMember.run(photoId, tagId);
+    // Prune the tag itself if nobody else references it
+    tagStmts.pruneOrphans.run();
+  },
+};
+
+// ============================================================
+//  Search
+// ============================================================
+
+/**
+ * Search photos by name / camera / lens / tag name.
+ * Returns DISTINCT rows, ordered by upload date desc.
+ *
+ * Naive LIKE search — fine up to ~10k photos. If/when it gets slow,
+ * swap for an FTS5 virtual table.
+ */
+const searchStmts = {
+  photos: db.prepare<[string, string, string, string], Photo>(`
+    SELECT DISTINCT p.* FROM photos p
+    LEFT JOIN photo_tags pt ON pt.photo_id = p.id
+    LEFT JOIN tags t ON t.id = pt.tag_id
+    WHERE p.name LIKE ?
+       OR p.camera LIKE ?
+       OR p.lens LIKE ?
+       OR t.name LIKE ?
+    ORDER BY p.uploaded_at DESC, p.id DESC
+  `),
+  galleries: db.prepare<[string, string], GallerySummary>(`
+    SELECT
+      g.*,
+      COALESCE(pc.cnt, 0) AS photo_count,
+      cover.name AS cover_name,
+      cover.developed_at AS cover_developed_at
+    FROM galleries g
+    LEFT JOIN (
+      SELECT gallery_id, COUNT(*) AS cnt
+      FROM photo_galleries
+      GROUP BY gallery_id
+    ) pc ON pc.gallery_id = g.id
+    LEFT JOIN photos cover ON cover.id = (
+      SELECT p.id FROM photos p
+      JOIN photo_galleries pg ON pg.photo_id = p.id
+      WHERE pg.gallery_id = g.id
+      ORDER BY p.uploaded_at DESC, p.id DESC
+      LIMIT 1
+    )
+    WHERE g.name LIKE ? OR g.description LIKE ?
+    ORDER BY g.updated_at DESC, g.id DESC
+  `),
+};
+
+export const search = {
+  photos: (q: string) => {
+    const like = `%${q.replace(/[%_\\]/g, (c) => "\\" + c)}%`;
+    return searchStmts.photos.all(like, like, like, like);
+  },
+  galleries: (q: string) => {
+    const like = `%${q.replace(/[%_\\]/g, (c) => "\\" + c)}%`;
+    return searchStmts.galleries.all(like, like);
+  },
+};
