@@ -1706,62 +1706,116 @@ input[type="range"]::-moz-range-thumb {
   display: none;
 }
 
-/* ───────────────────────── Mobile menu drawer ───────────────────────── */
-.mobile-menu-overlay {
+/* ───────────────────────── Sheet (drawer) primitive ─────────────────────────
+   Used by MobileMenu. Built on @radix-ui/react-dialog so it gets focus trap,
+   body scroll lock, ARIA semantics and portal mounting for free. */
+.sheet-overlay {
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: rgba(0, 0, 0, 0.6);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  animation: sheetFade 0.18s var(--ease);
 }
-.mobile-menu {
-  position: absolute;
+.sheet-overlay[data-state="closed"] {
+  animation: sheetFadeOut 0.15s var(--ease);
+}
+.sheet {
+  position: fixed;
   top: 0;
-  right: 0;
   bottom: 0;
-  width: min(320px, 86vw);
+  z-index: 81;
+  width: min(360px, 88vw);
   background: var(--surface);
-  border-left: 1px solid var(--line-2);
-  padding: 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  animation: mmSlideIn 0.22s var(--ease);
   overflow-y: auto;
+  padding: 20px 18px 24px;
+  outline: 0;
+  box-shadow: var(--shadow-card);
 }
-@keyframes mmSlideIn {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: none;
-  }
+.sheet-right {
+  right: 0;
+  border-left: 1px solid var(--line-2);
+  animation: sheetSlideInR 0.22s var(--ease);
 }
-.mm-head {
+.sheet-right[data-state="closed"] {
+  animation: sheetSlideOutR 0.18s var(--ease);
+}
+.sheet-left {
+  left: 0;
+  border-right: 1px solid var(--line-2);
+  animation: sheetSlideInL 0.22s var(--ease);
+}
+.sheet-left[data-state="closed"] {
+  animation: sheetSlideOutL 0.18s var(--ease);
+}
+@keyframes sheetFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes sheetFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes sheetSlideInR {
+  from { transform: translateX(100%); }
+  to   { transform: none; }
+}
+@keyframes sheetSlideOutR {
+  from { transform: none; }
+  to   { transform: translateX(100%); }
+}
+@keyframes sheetSlideInL {
+  from { transform: translateX(-100%); }
+  to   { transform: none; }
+}
+@keyframes sheetSlideOutL {
+  from { transform: none; }
+  to   { transform: translateX(-100%); }
+}
+
+.sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
 }
-.mm-nav,
-.mm-section {
+.sheet-title {
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.sheet-section {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 8px 0;
 }
-.mm-section h5 {
-  margin: 4px 12px 6px;
+.sheet-section + .sheet-section {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+}
+.sheet-section-label {
+  margin: 4px 8px 8px;
   font: 10px var(--f-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-3);
   font-weight: 500;
 }
-.mm-item {
+
+.sheet-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 14px;
@@ -1771,28 +1825,46 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   text-align: left;
   text-decoration: none;
-  transition: 0.15s;
+  transition:
+    background 0.15s var(--ease),
+    color 0.15s var(--ease);
   font-family: var(--f-ui);
-}
-.mm-item:hover {
-  background: var(--bg-2);
-  color: var(--ink);
-}
-.mm-item.on {
-  color: var(--ink);
-  background: var(--bg-2);
   position: relative;
+  width: 100%;
 }
-.mm-item.on::after {
+.sheet-item:hover,
+.sheet-item:focus-visible {
+  background: var(--bg-2);
+  color: var(--ink);
+  outline: 0;
+}
+.sheet-item[data-active] {
+  color: var(--ink);
+  background: var(--bg-2);
+}
+.sheet-item[data-active]::before {
   content: "";
   position: absolute;
-  left: -14px;
+  left: -18px;
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
   height: 18px;
   background: var(--accent);
   border-radius: 2px;
+}
+
+/* Screen-reader-only utility (used for SheetDescription) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ───────────────────────── Responsive ───────────────────────── */
