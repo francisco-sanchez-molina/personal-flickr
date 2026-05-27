@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.astro/
+
+# Local data (photos, thumbs, bases, sqlite db, tmp uploads)
+data/
+
+# Environment (secrets)
+.env
+.env.local
+.env.*.local
+
+# SQLite stragglers from local runs
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Logs / OS
+*.log
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+.zed/

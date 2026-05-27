@@ -1,0 +1,47 @@
+{
+  "name": "personal-flickr",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "start": "node ./dist/server/entry.mjs",
+    "preview": "astro preview",
+    "astro": "astro",
+    "tunnel": "node scripts/tunnel.mjs",
+    "share": "concurrently -k -n app,tunnel -c magenta,cyan \"pnpm dev\" \"pnpm tunnel\"",
+    "share:prod": "concurrently -k -n app,tunnel -c magenta,cyan \"pnpm start\" \"pnpm tunnel\"",
+    "docker:build": "docker build -t personal-flickr:local .",
+    "docker:run": "docker run --rm -p 4321:4321 -v $(pwd)/data:/data --env-file .env personal-flickr:local"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.2.0",
+    "@astrojs/react": "^4.2.1",
+    "@tailwindcss/vite": "^4.0.6",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "astro": "^5.3.0",
+    "better-sqlite3": "^11.8.1",
+    "dotenv": "^17.4.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-zoom-pan-pinch": "^4.0.3",
+    "sharp": "^0.33.5",
+    "tailwindcss": "^4.0.6"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "cloudflared": "^0.7.1",
+    "concurrently": "^9.2.1",
+    "typescript": "^6.0.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild",
+      "sharp"
+    ]
+  }
+}

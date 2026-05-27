@@ -1,0 +1,31 @@
+---
+import Base from "~/layouts/Base.astro";
+const error = Astro.url.searchParams.get("error");
+---
+
+<Base title="Login · Personal Flickr">
+  <div class="mx-auto mt-24 max-w-sm">
+    <h1 class="mb-6 text-center text-2xl font-semibold">Entrar</h1>
+    <form method="POST" action="/api/auth/login" class="space-y-3">
+      <input
+        type="password"
+        name="password"
+        placeholder="Contraseña"
+        autofocus
+        required
+        class="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-base outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
+      />
+      {
+        error && (
+          <p class="text-sm text-red-400">Contraseña incorrecta</p>
+        )
+      }
+      <button
+        type="submit"
+        class="w-full rounded-md bg-pink-500 px-3 py-2 font-medium text-white hover:bg-pink-600"
+      >
+        Entrar
+      </button>
+    </form>
+  </div>
+</Base>

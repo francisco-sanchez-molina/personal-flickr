@@ -1,0 +1,14 @@
+node_modules
+dist
+data
+.git
+.gitignore
+.env
+.env.*
+*.log
+.DS_Store
+.astro
+.vscode
+.idea
+README.md
+scripts/tunnel.mjs
