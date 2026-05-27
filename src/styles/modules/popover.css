@@ -1,0 +1,187 @@
+/* ───────────────────────── Popover ─────────────────────────
+   Built on Radix Popover (Portal + autopositioning). */
+.popover {
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 12px;
+  min-width: 240px;
+  max-width: 340px;
+  z-index: 120;
+  outline: 0;
+  animation: popoverIn 0.14s var(--ease);
+}
+.popover[data-state="closed"] {
+  animation: popoverOut 0.1s var(--ease);
+}
+.popover[data-side="bottom"] { transform-origin: top center; }
+.popover[data-side="top"]    { transform-origin: bottom center; }
+.popover[data-side="left"]   { transform-origin: right center; }
+.popover[data-side="right"]  { transform-origin: left center; }
+@keyframes popoverIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes popoverOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
+}
+.popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -4px -4px 8px;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.popover-title {
+  margin: 0;
+  font: 10px var(--f-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.dropzone {
+  border: 1.5px dashed var(--line-2);
+  border-radius: 14px;
+  padding: 60px 24px;
+  text-align: center;
+  background: var(--bg-2);
+  transition: 0.2s;
+  cursor: pointer;
+}
+.dropzone.over {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-2));
+}
+.dropzone .big {
+  font-family: var(--f-display);
+  font-size: 34px;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.dropzone .sub {
+  font: 12px var(--f-mono);
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+.dropzone .icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--bg-3);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 16px;
+  color: var(--ink-2);
+}
+
+.up-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+}
+.up-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.up-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: var(--bg-3);
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  font-family: var(--f-mono);
+  font-size: 10px;
+  overflow: hidden;
+}
+.up-info {
+  min-width: 0;
+}
+.up-info .name {
+  font-size: 13px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.up-info .sub {
+  font: 11px var(--f-mono);
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+.progress {
+  height: 3px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+.up-status {
+  font: 11px var(--f-mono);
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.up-status.done {
+  color: #7ed99b;
+}
+.up-status.err {
+  color: var(--danger);
+}
+.up-conflict {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: 18px 0;
+}
+
+/* Row with a checkbox — used inside .popover bodies (e.g. GalleryPicker) */
+.row-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  cursor: pointer;
+  color: var(--ink-2);
+  border-radius: 6px;
+  font-size: 13.5px;
+}
+.row-check input {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.row-check:hover {
+  color: var(--ink);
+  background: var(--bg-2);
+}
+.row-check.pending {
+  opacity: 0.6;
+}
+

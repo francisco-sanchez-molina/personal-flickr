@@ -14,6 +14,7 @@
  */
 import * as RPopover from "@radix-ui/react-popover";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { cn } from "~/lib/cn";
 
 export const Popover = RPopover.Root;
 export const PopoverTrigger = RPopover.Trigger;
@@ -41,7 +42,7 @@ export function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         collisionPadding={12}
-        className={`popover${className ? " " + className : ""}`}
+        className={cn("popover", className)}
         {...rest}
       >
         {children}
@@ -57,11 +58,7 @@ export function PopoverHeader({
   children: ReactNode;
   className?: string;
 }) {
-  return (
-    <div className={`popover-head${className ? " " + className : ""}`}>
-      {children}
-    </div>
-  );
+  return <div className={cn("popover-head", className)}>{children}</div>;
 }
 
 export function PopoverTitle({
@@ -71,9 +68,5 @@ export function PopoverTitle({
   children: ReactNode;
   className?: string;
 }) {
-  return (
-    <h5 className={`popover-title${className ? " " + className : ""}`}>
-      {children}
-    </h5>
-  );
+  return <h5 className={cn("popover-title", className)}>{children}</h5>;
 }

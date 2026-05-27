@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Icons } from "./icons";
+import { Icons } from "../icons";
 import MobileMenu from "./MobileMenu";
 
 interface Props {

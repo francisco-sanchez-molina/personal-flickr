@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Icons } from "./icons";
+import { Icons } from "../icons";
 import {
   Dialog,
   DialogBody,
@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./ui/Dialog";
+} from "../ui/Dialog";
 
 interface Gallery {
   id: number;

@@ -1,0 +1,40 @@
+/* ───────────────────────── Main pad ───────────────────────── */
+.main {
+  padding: 28px 28px 80px;
+  max-width: 1700px;
+  width: 100%;
+  margin: 0 auto;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.section-head h2 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: 38px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.count-chip {
+  font-family: var(--f-mono);
+  color: var(--ink-3);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+

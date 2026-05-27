@@ -4,7 +4,7 @@
  * body scroll lock and ARIA semantics for free.
  */
 import { useEffect, useState } from "react";
-import { Icons } from "./icons";
+import { Icons } from "../icons";
 import {
   Sheet,
   SheetClose,
@@ -14,7 +14,7 @@ import {
   SheetItem,
   SheetSection,
   SheetTitle,
-} from "./ui/Sheet";
+} from "../ui/Sheet";
 
 type Mood = "estudio" | "darkroom" | "salon";
 type Theme = "dark" | "light";

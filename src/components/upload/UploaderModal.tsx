@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Uploader from "./Uploader";
-import { Icons } from "./icons";
+import { Icons } from "../icons";
 import {
   Dialog,
   DialogClose,
@@ -8,7 +8,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "./ui/Dialog";
+} from "../ui/Dialog";
 
 interface CurrentGallery {
   id: number;

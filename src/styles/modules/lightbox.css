@@ -1,0 +1,379 @@
+/* ───────────────────────── Lightbox ───────────────────────── */
+.lb {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.85);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  color: #f5f3ee;
+  animation: fadeIn 0.2s var(--ease);
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.lb-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 16px;
+}
+.lb-top .filename {
+  font: 14px var(--f-mono);
+  letter-spacing: 0.02em;
+}
+.lb-top .meta {
+  font: 11.5px var(--f-mono);
+  color: rgba(245, 243, 238, 0.55);
+  letter-spacing: 0.04em;
+  margin-top: 3px;
+}
+.lb-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.lb-actions .btn {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f5f3ee;
+}
+.lb-actions .btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.lb-actions .btn.danger {
+  color: #ff7b85;
+  border-color: rgba(255, 123, 133, 0.3);
+}
+.lb-actions .iconbtn {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f5f3ee;
+}
+.lb-actions .iconbtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lb-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+/* When the info panel is open, give it a real column so the photo doesn't
+   sit underneath the EXIF text. */
+.lb-stage.with-info {
+  grid-template-columns: 1fr 320px;
+}
+/* Develop panel keeps its tools floating on the right. */
+.lb-stage.with-edit {
+  grid-template-columns: 1fr 360px;
+}
+.lb-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px 32px;
+  min-height: 0;
+  overflow: hidden;
+  user-select: none;
+}
+/* The <img> inside the TransformComponent inherits the flex layout from the
+   lib. We force ratio preservation via viewport-relative max constraints
+   (set inline on the element); the CSS here is just the visual polish. */
+.lb-canvas img {
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.lb-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f5f3ee;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: 0.2s;
+  z-index: 5;
+}
+.lb-nav:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.lb-nav.prev {
+  left: 18px;
+}
+.lb-nav.next {
+  right: 18px;
+}
+
+/* Side panel sits in the .lb-stage grid as a 320px column when info is open.
+   Doesn't overlap the canvas — the photo simply gets less width when expanded. */
+.lb-side {
+  width: 320px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+  background: rgba(8, 8, 10, 0.7);
+  animation: slideUp 0.25s var(--ease);
+}
+.lb-side .sec {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.lb-side .sec h4,
+.lb-side .sec h3 {
+  margin: 0 0 12px;
+  font: 10px var(--f-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 243, 238, 0.5);
+  font-weight: 500;
+}
+
+/* EXIF grid inside the info sidebar */
+.exif-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+}
+.exif-grid .k {
+  font: 10px var(--f-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(245, 243, 238, 0.45);
+  margin-bottom: 3px;
+}
+.exif-grid .v {
+  font-size: 14px;
+  color: #f5f3ee;
+}
+.exif-grid .v.m,
+.exif-grid .v .m {
+  font-family: var(--f-mono);
+  font-size: 13px;
+}
+
+/* Filter / index chips (used in /?view=tags etc.) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  font: 11.5px var(--f-mono);
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: transparent;
+  padding: 6px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.chip:hover {
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+.chip.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+
+/* Tag chips */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 11.5px var(--f-mono);
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f5f3ee;
+  padding: 4px 4px 4px 9px;
+  border-radius: 999px;
+}
+.tag .tag-x {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: rgba(245, 243, 238, 0.6);
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.tag .tag-x:hover {
+  color: var(--danger);
+  background: rgba(255, 74, 87, 0.12);
+}
+.tag.add {
+  appearance: none;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  color: rgba(245, 243, 238, 0.55);
+  cursor: pointer;
+  padding: 4px 9px;
+}
+.tag.add:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #f5f3ee;
+}
+.tag-input {
+  font: 11.5px var(--f-mono);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--accent);
+  color: #f5f3ee;
+  padding: 4px 9px;
+  border-radius: 999px;
+  outline: none;
+  min-width: 110px;
+  max-width: 160px;
+}
+
+/* Stylized location map */
+.map {
+  position: relative;
+  height: 160px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0e0e11;
+  color: var(--ink-2);
+}
+.map svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.map .pin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 0 8px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.map .lab {
+  position: absolute;
+  left: 14px;
+  bottom: 10px;
+  font: 11px var(--f-mono);
+  color: rgba(245, 243, 238, 0.7);
+  letter-spacing: 0.04em;
+}
+
+.lb-strip {
+  padding: 12px 24px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  overflow-x: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.lb-strip .thumb {
+  width: 54px;
+  height: 54px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  opacity: 0.55;
+  transition: 0.15s;
+  cursor: pointer;
+}
+.lb-strip .thumb:hover {
+  opacity: 0.85;
+}
+.lb-strip .thumb.on {
+  opacity: 1;
+  border-color: var(--accent);
+}
+.lb-strip .thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lb-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  font: 10.5px var(--f-mono);
+  color: rgba(245, 243, 238, 0.4);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* Fullscreen mode: strip all chrome, show just the photo. The container is
+   the one that requested the Fullscreen API, so the OS hides browser UI too.
+   Click anywhere or press Esc/F to exit. */
+.lb.is-fullscreen {
+  grid-template-rows: 1fr;
+}
+.lb.is-fullscreen .lb-top,
+.lb.is-fullscreen .lb-strip,
+.lb.is-fullscreen .lb-hint,
+.lb.is-fullscreen .lb-side,
+.lb.is-fullscreen .lb-nav {
+  display: none;
+}
+.lb.is-fullscreen .lb-stage {
+  grid-template-columns: 1fr !important;
+}
+.lb.is-fullscreen .lb-canvas {
+  padding: 0;
+}
+.lb.is-fullscreen .lb-canvas img {
+  border-radius: 0;
+  box-shadow: none;
+}
+

@@ -21,6 +21,7 @@ import {
   targetFilename,
   thumbPath,
 } from "~/lib/storage";
+import { isVideoExt, isVideoMime, processVideo } from "~/lib/video";
 
 export const config = { runtime: "nodejs" } as const;
 
@@ -64,10 +65,11 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const { stem, ext } = sanitizeName(file.name);
+  const isVideo = isVideoExt(ext) || isVideoMime(file.type);
   let outName =
     typeof finalNameOverride === "string" && finalNameOverride
       ? path.basename(String(finalNameOverride))
-      : targetFilename(stem);
+      : targetFilename(stem, isVideo ? "video" : "photo");
 
   const collides = nameExists(outName);
   if (collides && decision === "create") {
@@ -93,6 +95,54 @@ export const POST: APIRoute = async ({ request }) => {
   await fs.writeFile(tmpFile, buf);
 
   try {
+    const now = Date.now();
+
+    if (isVideo) {
+      // Video pipeline: ffprobe → ffmpeg transcode (H.264/AAC, 720p, +faststart)
+      // → poster-frame webp thumb. No base / develop / EXIF (we strip metadata
+      // on transcode to keep file size predictable).
+      const v = await processVideo(tmpFile);
+      try {
+        await fs.rename(v.outPath, photoPath(outName));
+      } catch {
+        // EXDEV when tmp lives on a different fs than the data volume.
+        await fs.copyFile(v.outPath, photoPath(outName));
+        await fs.unlink(v.outPath).catch(() => {});
+      }
+      await fs.writeFile(thumbPath(outName), v.thumbBuffer);
+
+      const meta = {
+        name: outName,
+        mime: v.mime,
+        width: v.width,
+        height: v.height,
+        size_bytes: v.sizeBytes,
+        uploaded_at: now,
+        developed_at: now,
+        develop_params: null,
+        has_base: 0,
+        original_ext: ext.toLowerCase() || null,
+        camera: null,
+        lens: null,
+        fstop: null,
+        shutter: null,
+        iso: null,
+        focal: null,
+        taken_at: null,
+        gps_lat: null,
+        gps_lng: null,
+        kind: "video" as const,
+        duration_ms: v.durationMs,
+      };
+      if (collides && decision === "replace") {
+        photoQueries.upsertReplace(meta);
+      } else {
+        photoQueries.insert(meta);
+      }
+      const saved = photoQueries.byName(outName);
+      return Response.json({ ok: true, photo: saved });
+    }
+
     // 0. EXIF — best-effort. If the file has none, we get all-nulls.
     const exif = await extractExif(buf).catch(() => ({ ...EMPTY_EXIF }));
 
@@ -113,7 +163,6 @@ export const POST: APIRoute = async ({ request }) => {
       await fs.writeFile(basePath(outName), base.buffer);
     }
 
-    const now = Date.now();
     const meta = {
       name: outName,
       mime: processed.mime,
@@ -136,6 +185,9 @@ export const POST: APIRoute = async ({ request }) => {
       taken_at: exif.taken_at,
       gps_lat: exif.gps_lat,
       gps_lng: exif.gps_lng,
+      // Video support: this endpoint only handles still photos today.
+      kind: "photo" as const,
+      duration_ms: null,
     };
     if (collides && decision === "replace") {
       photoQueries.upsertReplace(meta);

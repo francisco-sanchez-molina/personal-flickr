@@ -1,0 +1,143 @@
+/* ───────────────────────── Tokens ─────────────────────────
+   3 moods × 2 themes. The active combo is set via `data-mood`
+   and `data-theme` on <html> by Base.astro before hydration.
+*/
+:root {
+  /* type */
+  --f-display: "Instrument Serif", Georgia, serif;
+  --f-ui: "Geist", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "Geist Mono", ui-monospace, monospace;
+
+  /* dark estudio (default) */
+  --bg: #0b0b0d;
+  --bg-2: #121215;
+  --bg-3: #1a1a1f;
+  --surface: #16161a;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.14);
+  --ink: #f1efea;
+  --ink-2: #b7b4ac;
+  --ink-3: #73706a;
+  --ink-4: #3f3d38;
+
+  --accent: #ff2d87;
+  --accent-2: #ff6baa;
+  --accent-ink: #0b0b0d;
+
+  --warn: #e8c44c;
+  --danger: #ff4a57;
+
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+
+  --grid-gap: 14px;
+  --col: 280px;
+  --rail: 64px;
+
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px rgba(0, 0, 0, 0.4);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* mood: estudio (default magenta) — kept explicit so the JS toggler can flip
+   between moods without re-applying the default block. */
+:root[data-mood="estudio"] {
+  --accent: #ff2d87;
+  --accent-2: #ff6baa;
+  --accent-ink: #0b0b0d;
+}
+
+/* mood: cuarto oscuro */
+:root[data-mood="darkroom"] {
+  --bg: #070707;
+  --bg-2: #0d0c0b;
+  --bg-3: #13110e;
+  --surface: #0f0e0c;
+  --line: rgba(255, 180, 90, 0.08);
+  --line-2: rgba(255, 180, 90, 0.18);
+  --ink: #f2e8d8;
+  --ink-2: #b8a88a;
+  --ink-3: #6e6147;
+  --ink-4: #3b321f;
+  --accent: #ff6a2c;
+  --accent-2: #ff9359;
+  --accent-ink: #0b0703;
+}
+
+/* mood: salón (light) */
+:root[data-mood="salon"] {
+  --bg: #f5f3ee;
+  --bg-2: #edeae3;
+  --bg-3: #e4e0d7;
+  --surface: #fffffe;
+  --line: rgba(20, 18, 14, 0.1);
+  --line-2: rgba(20, 18, 14, 0.18);
+  --ink: #14120e;
+  --ink-2: #4a4742;
+  --ink-3: #7e7a72;
+  --ink-4: #bab6ac;
+  --accent: #14120e;
+  --accent-2: #3f3d38;
+  --accent-ink: #f5f3ee;
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 1px 0 rgba(20, 18, 14, 0.06), 0 10px 28px rgba(20, 18, 14, 0.08);
+}
+
+/* per-screen theme toggle wins after mood */
+:root[data-theme="light"][data-mood="estudio"] {
+  --bg: #f5f3ee;
+  --bg-2: #edeae3;
+  --bg-3: #e4e0d7;
+  --surface: #fffffe;
+  --line: rgba(20, 18, 14, 0.1);
+  --line-2: rgba(20, 18, 14, 0.18);
+  --ink: #14120e;
+  --ink-2: #4a4742;
+  --ink-3: #7e7a72;
+  --ink-4: #bab6ac;
+  --accent-ink: #fffffe;
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 10px 28px rgba(20, 18, 14, 0.1);
+}
+:root[data-theme="light"][data-mood="darkroom"] {
+  --bg: #ede6d8;
+  --bg-2: #e3dac7;
+  --bg-3: #d6cbb4;
+  --surface: #f5efe0;
+  --line: rgba(60, 40, 10, 0.12);
+  --line-2: rgba(60, 40, 10, 0.22);
+  --ink: #1e160a;
+  --ink-2: #4f3e22;
+  --ink-3: #7a6b4d;
+  --ink-4: #b3a37e;
+  --accent-ink: #fffffe;
+}
+:root[data-theme="dark"][data-mood="salon"] {
+  --bg: #0f0e0c;
+  --bg-2: #16140f;
+  --bg-3: #1d1b14;
+  --surface: #15130e;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.16);
+  --ink: #f2efe6;
+  --ink-2: #b0a998;
+  --ink-3: #766f5f;
+  --ink-4: #3f3a30;
+  --accent: #f2efe6;
+  --accent-2: #b0a998;
+  --accent-ink: #0f0e0c;
+}
+
+/* density */
+:root[data-density="compact"] {
+  --grid-gap: 8px;
+  --col: 220px;
+}
+:root[data-density="comfy"] {
+  --grid-gap: 22px;
+  --col: 340px;
+}
+

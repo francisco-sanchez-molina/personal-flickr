@@ -23,6 +23,7 @@
  */
 import * as RDialog from "@radix-ui/react-dialog";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { cn } from "~/lib/cn";
 
 export const Dialog = RDialog.Root;
 export const DialogTrigger = RDialog.Trigger;
@@ -43,7 +44,7 @@ export function DialogContent({
     <RDialog.Portal>
       <RDialog.Overlay className="dialog-overlay" />
       <RDialog.Content
-        className={`dialog dialog-${size}${className ? " " + className : ""}`}
+        className={cn("dialog", `dialog-${size}`, className)}
         {...rest}
       >
         {children}
@@ -59,11 +60,7 @@ export function DialogHeader({
   children: ReactNode;
   className?: string;
 }) {
-  return (
-    <div className={`dialog-head${className ? " " + className : ""}`}>
-      {children}
-    </div>
-  );
+  return <div className={cn("dialog-head", className)}>{children}</div>;
 }
 
 export function DialogTitle({
@@ -74,7 +71,7 @@ export function DialogTitle({
   className?: string;
 }) {
   return (
-    <RDialog.Title className={`dialog-title${className ? " " + className : ""}`}>
+    <RDialog.Title className={cn("dialog-title", className)}>
       {children}
     </RDialog.Title>
   );
@@ -92,11 +89,7 @@ export function DialogBody({
   children: ReactNode;
   className?: string;
 }) {
-  return (
-    <div className={`dialog-body${className ? " " + className : ""}`}>
-      {children}
-    </div>
-  );
+  return <div className={cn("dialog-body", className)}>{children}</div>;
 }
 
 export function DialogFooter({
@@ -106,9 +99,5 @@ export function DialogFooter({
   children: ReactNode;
   className?: string;
 }) {
-  return (
-    <div className={`dialog-footer${className ? " " + className : ""}`}>
-      {children}
-    </div>
-  );
+  return <div className={cn("dialog-footer", className)}>{children}</div>;
 }

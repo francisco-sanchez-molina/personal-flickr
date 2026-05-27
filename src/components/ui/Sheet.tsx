@@ -30,6 +30,7 @@
  */
 import * as Dialog from "@radix-ui/react-dialog";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { cn } from "~/lib/cn";
 
 export const Sheet = Dialog.Root;
 export const SheetTrigger = Dialog.Trigger;
@@ -49,7 +50,7 @@ export function SheetContent({
     <Dialog.Portal>
       <Dialog.Overlay className="sheet-overlay" />
       <Dialog.Content
-        className={`sheet sheet-${side}${className ? " " + className : ""}`}
+        className={cn("sheet", `sheet-${side}`, className)}
         {...rest}
       >
         {children}
@@ -65,11 +66,7 @@ export function SheetHeader({
   children: ReactNode;
   className?: string;
 }) {
-  return (
-    <div className={`sheet-head${className ? " " + className : ""}`}>
-      {children}
-    </div>
-  );
+  return <div className={cn("sheet-head", className)}>{children}</div>;
 }
 
 export function SheetTitle({
@@ -80,9 +77,7 @@ export function SheetTitle({
   className?: string;
 }) {
   return (
-    <Dialog.Title
-      className={`sheet-title${className ? " " + className : ""}`}
-    >
+    <Dialog.Title className={cn("sheet-title", className)}>
       {children}
     </Dialog.Title>
   );
@@ -131,7 +126,7 @@ export function SheetItem({
   const Tag = As as any;
   return (
     <Tag
-      className={`sheet-item${className ? " " + className : ""}`}
+      className={cn("sheet-item", className)}
       data-active={active ? "" : undefined}
       {...rest}
     >

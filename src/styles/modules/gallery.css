@@ -1,0 +1,118 @@
+/* ───────────────────────── Gallery cards ───────────────────────── */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--col), 1fr));
+  gap: var(--grid-gap);
+}
+.gcard {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.25s var(--ease),
+    border-color 0.25s;
+  cursor: pointer;
+  color: inherit;
+}
+.gcard:hover {
+  border-color: var(--line-2);
+  transform: translateY(-2px);
+}
+.gcard-cover {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--bg-3);
+}
+.gcard-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s var(--ease);
+}
+.gcard:hover .gcard-cover img {
+  transform: scale(1.04);
+}
+.gcard-empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--ink-4);
+  font-size: 42px;
+  font-family: var(--f-display);
+}
+.gcard-strip {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: 0.25s var(--ease);
+}
+.gcard:hover .gcard-strip {
+  opacity: 1;
+  transform: none;
+}
+.gcard-strip > div {
+  flex: 1;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.gcard-strip img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gcard-meta {
+  padding: 14px 16px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10px;
+}
+.gcard-meta h3 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.gcard-meta .mono {
+  color: var(--ink-3);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+.gcard .badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #f5f3ee;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font: 11px var(--f-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+/* Special 'orphans' card */
+.gcard.orphans .gcard-cover {
+  background: var(--bg-2);
+  border: 1.5px dashed var(--line-2);
+  border-radius: var(--radius);
+}
+.gcard.orphans:hover .gcard-cover {
+  border-color: var(--ink-3);
+}
+

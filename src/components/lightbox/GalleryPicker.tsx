@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Icons } from "./icons";
+import { cn } from "~/lib/cn";
+import { Icons } from "../icons";
 import {
   Popover,
   PopoverContent,
   PopoverHeader,
   PopoverTitle,
   PopoverTrigger,
-} from "./ui/Popover";
+} from "../ui/Popover";
 
 interface Gallery {
   id: number;
@@ -169,7 +170,7 @@ export default function GalleryPicker({
             all.map((g) => (
               <label
                 key={g.id}
-                className={`row-check ${pendingId === g.id ? "pending" : ""}`}
+                className={cn("row-check", pendingId === g.id && "pending")}
               >
                 <input
                   type="checkbox"

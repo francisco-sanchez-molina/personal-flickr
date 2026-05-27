@@ -1,0 +1,57 @@
+/* ───────────────────────── Gallery detail ───────────────────────── */
+.gd-hero {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  aspect-ratio: 21/9;
+  margin-bottom: 28px;
+  background: var(--bg-2);
+}
+.gd-hero img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.05);
+}
+.gd-hero .hero-grade {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.2),
+    rgba(0, 0, 0, 0) 40%,
+    rgba(0, 0, 0, 0.7)
+  );
+}
+.gd-meta {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 24px;
+  padding: 20px 0 28px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 28px;
+}
+.gd-meta .label {
+  font: 10px var(--f-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+}
+.gd-meta .val {
+  font-family: var(--f-display);
+  font-size: 24px;
+  font-weight: 400;
+}
+.gd-meta .val.s {
+  font-family: var(--f-ui);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+@media (max-width: 900px) {
+  .gd-meta {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+

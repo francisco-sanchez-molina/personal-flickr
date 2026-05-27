@@ -1,0 +1,97 @@
+/* ───────────────────────── Edit panel (Revelar) ───────────────────────── */
+.edit-side {
+  width: 360px;
+}
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+}
+.preset {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.preset:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.preset.on {
+  border-color: var(--accent);
+  background: rgba(255, 45, 135, 0.08);
+}
+.preset .sw {
+  height: 24px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+.preset .n {
+  font: 10px var(--f-mono);
+  color: #f5f3ee;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.slider-row {
+  margin-bottom: 14px;
+}
+.slider-row .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+.slider-row .name {
+  font-size: 13px;
+}
+.slider-row .num {
+  font: 11.5px var(--f-mono);
+  color: rgba(245, 243, 238, 0.55);
+}
+
+.rot-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+input[type="range"] {
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  height: 18px;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--line-2);
+  border-radius: 2px;
+}
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--line-2);
+  border-radius: 2px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: -6px;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px var(--bg);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+

@@ -1,0 +1,168 @@
+/* ───────────────────────── Responsive ───────────────────────── */
+@media (max-width: 720px) {
+  :root {
+    --rail: 0px;
+  }
+  .rail {
+    display: none;
+  }
+  .app {
+    grid-template-columns: 1fr !important;
+  }
+  .main {
+    padding: 20px 16px 100px !important;
+    max-width: none;
+  }
+  /* Topbar stays a single compact row on mobile */
+  .topbar {
+    padding: 10px 12px;
+    min-height: auto;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .topbar .lbl-d {
+    display: none;
+  }
+  /* breadcrumb / page-title hidden on mobile — drawer has nav, page has H2 */
+  .topbar .topbar-breadcrumb {
+    display: none;
+  }
+  .topbar .search {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    padding: 7px 10px;
+  }
+  .topbar .search input {
+    font-size: 13px;
+  }
+  .topbar .seg,
+  .topbar kbd {
+    display: none;
+  }
+  .topbar .topbar-spacer {
+    display: none;
+  }
+  .topbar .btn {
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+  .topbar .btn.primary {
+    padding: 7px 9px;
+  }
+  .topbar .menu-toggle {
+    display: grid;
+  }
+
+  .hero {
+    aspect-ratio: 5/6;
+  }
+  .hero-title {
+    font-size: 42px;
+  }
+  .section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .section-head h2 {
+    font-size: 28px;
+  }
+  .gallery-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .gcard.big {
+    grid-column: span 2;
+    grid-row: auto;
+  }
+  .gcard.big .gcard-cover {
+    min-height: auto;
+    aspect-ratio: 16/10;
+  }
+  .gcard.big .gcard-meta h3 {
+    font-size: 22px;
+  }
+  .gd-hero {
+    aspect-ratio: 4/5;
+  }
+  .gd-meta {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  /* Lightbox: hide secondary actions, drop the side panel, narrower padding */
+  .lb-top {
+    padding: 12px 14px;
+    flex-wrap: nowrap;
+  }
+  .lb-top .filename {
+    font-size: 12px;
+  }
+  .lb-top .meta {
+    font-size: 10.5px;
+  }
+  .lb-actions .btn {
+    display: none;
+  }
+  .lb-actions {
+    gap: 4px;
+  }
+  .lb-canvas {
+    padding: 12px 14px;
+  }
+  .lb-nav {
+    width: 38px;
+    height: 38px;
+  }
+  .lb-nav.prev {
+    left: 8px;
+  }
+  .lb-nav.next {
+    right: 8px;
+  }
+  /* Info panel hides on mobile (we don't have a bottom-sheet for it yet),
+     but the Develop tools stay as a bottom sheet. */
+  .lb-side:not(.edit-side) {
+    display: none;
+  }
+  .lb-stage.with-edit {
+    grid-template-columns: 1fr;
+  }
+  .lb-side.edit-side {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 55vh;
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px 18px 0 0;
+    background: rgba(8, 8, 10, 0.95);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    z-index: 3;
+  }
+  .lb-side.edit-side::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 99px;
+    background: rgba(245, 243, 238, 0.3);
+    margin: 8px auto 0;
+  }
+  .lb-strip {
+    display: none;
+  }
+  .lb-hint {
+    display: none;
+  }
+  .bulkbar > .inner {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+  }
+  .bulkbar .count {
+    width: 100%;
+  }
+}

@@ -47,6 +47,11 @@ export const config = {
   sessionSecret: loadOrCreateSessionSecret(),
   targetSizeMB: Number(process.env.TARGET_SIZE_MB ?? "2"),
   maxDimension: Number(process.env.MAX_DIMENSION ?? "2560"),
+  // Video transcoding (H.264/AAC MP4). Defaults give "HD better than WhatsApp":
+  // 720p at CRF 23 ≈ 1.5–2.5 Mbps depending on motion.
+  videoMaxDim: Number(process.env.VIDEO_MAX_DIM ?? "1280"),
+  videoCRF: Number(process.env.VIDEO_CRF ?? "23"),
+  videoAudioKbps: Number(process.env.VIDEO_AUDIO_KBPS ?? "128"),
   dataDir,
 };
 

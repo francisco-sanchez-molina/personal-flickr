@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Icons } from "./icons";
+import { cn } from "~/lib/cn";
+import { Icons } from "../icons";
 
 export interface DevelopParams {
   brightness: number;
@@ -175,7 +176,7 @@ export default function DevelopPanel({
         </div>
         <div className="lb-actions">
           <button
-            className={`btn ${compare ? "primary" : ""}`}
+            className={cn("btn", compare && "primary")}
             onClick={() => setCompare((v) => !v)}
           >
             <Icons.Compare size={14} /> {compare ? "Editado" : "Antes / Después"}
@@ -221,7 +222,7 @@ export default function DevelopPanel({
               {PRESETS.map((p) => (
                 <button
                   key={p.id}
-                  className={`preset ${activePreset === p.id ? "on" : ""}`}
+                  className={cn("preset", activePreset === p.id && "on")}
                   onClick={() => applyPreset(p.id)}
                 >
                   <div className="sw" style={{ background: p.grad }} />

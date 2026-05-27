@@ -53,11 +53,17 @@ export function sanitizeName(rawName: string): { stem: string; ext: string } {
 }
 
 /**
- * The on-disk filename (always JPEG after processing).
- * We use a normalized stem + ".jpg". The DB `name` column stores this filename.
+ * The on-disk filename after processing.
+ *
+ * Photos are always normalized to ".jpg" regardless of input format.
+ * Videos are always normalized to ".mp4" (we transcode anything we accept
+ * to H.264/AAC MP4 for broad browser playback).
+ *
+ * The DB `name` column stores this filename verbatim, and serves as the
+ * unique key for collision detection.
  */
-export function targetFilename(stem: string): string {
-  return `${stem}.jpg`;
+export function targetFilename(stem: string, kind: "photo" | "video" = "photo"): string {
+  return kind === "video" ? `${stem}.mp4` : `${stem}.jpg`;
 }
 
 /** True if a photo with this final filename already exists. */

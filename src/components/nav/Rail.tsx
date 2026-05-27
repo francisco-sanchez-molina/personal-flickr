@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Icons } from "./icons";
+import { Icons } from "../icons";
 
 type Mood = "estudio" | "darkroom" | "salon";
 type Theme = "dark" | "light";

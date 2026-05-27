@@ -1,0 +1,104 @@
+/* ───────────────────────── Misc ───────────────────────── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 80px 0;
+  color: var(--ink-3);
+  text-align: center;
+}
+.empty .big {
+  font-family: var(--f-display);
+  font-size: 32px;
+  color: var(--ink);
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  margin: 0 0 26px;
+}
+.tabs a,
+.tabs button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink-3);
+  font-size: 14px;
+  padding: 14px 18px;
+  cursor: pointer;
+  position: relative;
+  font-family: var(--f-ui);
+  font-weight: 500;
+  transition: color 0.15s;
+  text-decoration: none;
+}
+.tabs a:first-child,
+.tabs button:first-child {
+  padding-left: 0;
+}
+.tabs a:hover,
+.tabs button:hover {
+  color: var(--ink-2);
+}
+.tabs a.on,
+.tabs button.on {
+  color: var(--ink);
+}
+.tabs a.on::after,
+.tabs button.on::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.tabs a:first-child.on::after,
+.tabs button:first-child.on::after {
+  left: 0;
+}
+
+.kbd {
+  font: 11px var(--f-mono);
+  border: 1px solid var(--line-2);
+  padding: 1px 6px;
+  border-radius: 5px;
+  color: var(--ink-2);
+  background: var(--bg-2);
+}
+
+/* segmented (view toggle) */
+.seg {
+  display: inline-flex;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 3px;
+}
+.seg button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink-3);
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.seg button.on {
+  background: var(--bg-3);
+  color: var(--ink);
+}
+
+/* The hamburger menu trigger lives in the topbar but only shows on mobile. */
+.topbar .menu-toggle {
+  display: none;
+}
+

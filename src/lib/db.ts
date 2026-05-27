@@ -55,6 +55,11 @@ db.exec(
   `CREATE INDEX IF NOT EXISTS idx_photos_camera ON photos(camera);
    CREATE INDEX IF NOT EXISTS idx_photos_taken_at ON photos(taken_at DESC);`,
 );
+
+// Video support (added 2026-05). `kind` discriminates 'photo' vs 'video';
+// 'duration_ms' is null for photos.
+addColumnIfMissing("photos", "kind", "TEXT NOT NULL DEFAULT 'photo'");
+addColumnIfMissing("photos", "duration_ms", "INTEGER");
 // Backfill developed_at = uploaded_at for old rows
 db.exec(
   `UPDATE photos SET developed_at = uploaded_at WHERE developed_at = 0`,
@@ -130,6 +135,10 @@ export interface Photo {
   taken_at: number | null;
   gps_lat: number | null;
   gps_lng: number | null;
+  /** 'photo' (default) or 'video'. */
+  kind: "photo" | "video";
+  /** Duration in ms for videos, null for photos. */
+  duration_ms: number | null;
 }
 
 const stmts = {
@@ -142,16 +151,19 @@ const stmts = {
     `INSERT INTO photos
        (name, mime, width, height, size_bytes, uploaded_at,
         developed_at, develop_params, has_base, original_ext,
-        camera, lens, fstop, shutter, iso, focal, taken_at, gps_lat, gps_lng)
+        camera, lens, fstop, shutter, iso, focal, taken_at, gps_lat, gps_lng,
+        kind, duration_ms)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?,
+             ?, ?)`,
   ),
   updateForReplace: db.prepare(
     `UPDATE photos
        SET mime = ?, width = ?, height = ?, size_bytes = ?, uploaded_at = ?,
            developed_at = ?, develop_params = ?, has_base = ?, original_ext = ?,
            camera = ?, lens = ?, fstop = ?, shutter = ?, iso = ?, focal = ?,
-           taken_at = ?, gps_lat = ?, gps_lng = ?
+           taken_at = ?, gps_lat = ?, gps_lng = ?,
+           kind = ?, duration_ms = ?
      WHERE name = ?`,
   ),
   updateExif: db.prepare(
@@ -216,6 +228,8 @@ export interface PhotoUpsert {
   taken_at: number | null;
   gps_lat: number | null;
   gps_lng: number | null;
+  kind: "photo" | "video";
+  duration_ms: number | null;
 }
 
 export const photoQueries = {
@@ -243,6 +257,8 @@ export const photoQueries = {
       p.taken_at,
       p.gps_lat,
       p.gps_lng,
+      p.kind,
+      p.duration_ms,
     );
     return Number(r.lastInsertRowid);
   },
@@ -266,6 +282,8 @@ export const photoQueries = {
       p.taken_at,
       p.gps_lat,
       p.gps_lng,
+      p.kind,
+      p.duration_ms,
       p.name,
     );
   },

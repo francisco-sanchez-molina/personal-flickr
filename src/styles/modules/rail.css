@@ -1,0 +1,97 @@
+/* ───────────────────────── Layout shell ───────────────────────── */
+.app {
+  display: grid;
+  grid-template-columns: var(--rail) 1fr;
+  min-height: 100vh;
+}
+.rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0;
+  background: var(--bg);
+  z-index: 30;
+}
+.rail-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+  color: var(--accent-ink);
+  font-family: var(--f-display);
+  font-size: 18px;
+  line-height: 1;
+}
+.rail-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.rail-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  position: relative;
+  transition:
+    color 0.2s var(--ease),
+    background 0.2s var(--ease);
+}
+.rail-btn:hover {
+  color: var(--ink);
+  background: var(--bg-2);
+}
+.rail-btn[aria-current="true"] {
+  color: var(--ink);
+}
+.rail-btn[aria-current="true"]::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.rail-tip {
+  position: absolute;
+  left: 54px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-3);
+  color: var(--ink);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s var(--ease);
+  z-index: 50;
+}
+.rail-btn:hover .rail-tip {
+  opacity: 1;
+}
+
+.canvas {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+

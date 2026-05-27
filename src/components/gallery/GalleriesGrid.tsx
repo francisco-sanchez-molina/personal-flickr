@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { Icons } from "./icons";
+import { cn } from "~/lib/cn";
+import { Icons } from "../icons";
 
 interface GallerySummary {
   id: number;
@@ -166,7 +167,7 @@ export default function GalleriesGrid({
             <a
               key={g.id}
               href={`/g/${g.slug}`}
-              className={`gcard${featured && i === 0 && g.cover_name ? " big" : ""}`}
+              className={cn("gcard", featured && i === 0 && g.cover_name && "big")}
               aria-label={g.name}
             >
               <div className="gcard-cover">

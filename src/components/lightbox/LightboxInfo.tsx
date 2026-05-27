@@ -4,27 +4,8 @@
  * hidden on mobile (≤720px) via CSS.
  */
 import { useEffect, useState } from "react";
+import type { Photo } from "~/lib/db";
 import Histogram from "./Histogram";
-
-interface Photo {
-  id: number;
-  name: string;
-  width: number;
-  height: number;
-  size_bytes: number;
-  uploaded_at: number;
-  developed_at: number;
-  original_ext: string | null;
-  camera: string | null;
-  lens: string | null;
-  fstop: number | null;
-  shutter: string | null;
-  iso: number | null;
-  focal: number | null;
-  taken_at: number | null;
-  gps_lat: number | null;
-  gps_lng: number | null;
-}
 
 interface Tag {
   id: number;

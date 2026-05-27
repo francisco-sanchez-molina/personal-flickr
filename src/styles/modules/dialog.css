@@ -1,0 +1,114 @@
+/* ───────────────────────── Dialog (centered modal) ─────────────────────────
+   Built on Radix Dialog. Centered card on desktop, bottom-sheet on mobile.
+   See src/components/ui/Dialog.tsx for the React surface. */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: dialogFade 0.18s var(--ease);
+}
+.dialog-overlay[data-state="closed"] {
+  animation: dialogFadeOut 0.14s var(--ease);
+}
+.dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 91;
+  max-height: calc(100vh - 32px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  outline: 0;
+  animation: dialogPop 0.18s var(--ease);
+}
+.dialog[data-state="closed"] {
+  animation: dialogPopOut 0.14s var(--ease);
+}
+.dialog-sm { width: min(420px, calc(100vw - 32px)); }
+.dialog-md { width: min(720px, calc(100vw - 32px)); }
+.dialog-lg { width: min(960px, calc(100vw - 32px)); }
+
+@keyframes dialogFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes dialogFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes dialogPop {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes dialogPopOut {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.dialog-title {
+  margin: 0;
+  font: 10px var(--f-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.dialog-body {
+  padding: 22px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.dialog-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 14px 22px;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+/* On mobile, dialog slides up from the bottom and snaps to the bottom edge */
+@media (max-width: 720px) {
+  .dialog {
+    left: 0;
+    top: auto;
+    bottom: 0;
+    transform: none;
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 92vh;
+    border-radius: 18px 18px 0 0;
+    border-bottom: 0;
+    animation: dialogSlideUp 0.22s var(--ease);
+  }
+  .dialog[data-state="closed"] {
+    animation: dialogSlideDown 0.18s var(--ease);
+  }
+  @keyframes dialogSlideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+  }
+  @keyframes dialogSlideDown {
+    from { transform: none; opacity: 1; }
+    to   { transform: translateY(100%); opacity: 0; }
+  }
+}
+
