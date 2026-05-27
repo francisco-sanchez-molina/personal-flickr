@@ -104,15 +104,21 @@ export default function Gallery({
       const photo = photos[idx];
       if (!photo) return;
 
-      // Range select via shift+click (only relevant in select mode or to enter it).
-      if (e.shiftKey && anchorIndexRef.current != null) {
-        const a = Math.min(anchorIndexRef.current, idx);
-        const b = Math.max(anchorIndexRef.current, idx);
+      // Shift+click ALWAYS enters select mode and selects a range. If there
+      // is no anchor yet (first interaction), the "range" is just this photo,
+      // and the anchor moves to it for subsequent shift+clicks to extend.
+      if (e.shiftKey) {
+        // Avoid the browser's accidental text-selection on shift-click.
+        window.getSelection?.()?.removeAllRanges();
+        const anchor = anchorIndexRef.current ?? idx;
+        const a = Math.min(anchor, idx);
+        const b = Math.max(anchor, idx);
         setSelected((prev) => {
           const next = new Set(prev);
           for (let i = a; i <= b; i++) next.add(photos[i].id);
           return next;
         });
+        anchorIndexRef.current = idx;
         return;
       }
 
@@ -130,7 +136,9 @@ export default function Gallery({
         return;
       }
 
-      // Default: open the lightbox.
+      // Default: open the lightbox. Also remember this index so a subsequent
+      // shift+click can build a range starting here.
+      anchorIndexRef.current = idx;
       setActive(idx);
     },
     [photos, selectMode, toggleSelected],
@@ -411,7 +419,7 @@ export default function Gallery({
         </div>
       </div>
 
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <ul className="grid select-none grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {photos.map((p, i) => {
           const isSelected = selected.has(p.id);
           return (
