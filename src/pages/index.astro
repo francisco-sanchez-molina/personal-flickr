@@ -4,13 +4,15 @@ import Gallery from "~/components/Gallery.tsx";
 import GalleriesGrid from "~/components/GalleriesGrid.tsx";
 import { galleryQueries, photoQueries } from "~/lib/db";
 
+// Default landing = Galerías. Photos and Favoritas are opt-in via ?view=.
+// We accept ?view=galleries as an alias of "/" for backwards-compatible links.
 const viewParam = Astro.url.searchParams.get("view");
-const view: "photos" | "favorites" | "galleries" =
-  viewParam === "galleries"
-    ? "galleries"
+const view: "galleries" | "photos" | "favorites" =
+  viewParam === "photos"
+    ? "photos"
     : viewParam === "favorites"
       ? "favorites"
-      : "photos";
+      : "galleries";
 
 const photos =
   view === "photos"
@@ -23,10 +25,21 @@ const galleries = view === "galleries" ? galleryQueries.list() : [];
 
 <Base>
   <div class="space-y-6">
-    {/* View toggle */}
+    {/* View toggle — Galerías is the default landing tab */}
     <nav class="flex gap-1 border-b border-neutral-800">
       <a
         href="/"
+        class:list={[
+          "rounded-t-md px-4 py-2 text-sm font-medium transition",
+          view === "galleries"
+            ? "border-b-2 border-pink-500 text-neutral-100"
+            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100",
+        ]}
+      >
+        Galerías
+      </a>
+      <a
+        href="/?view=photos"
         class:list={[
           "rounded-t-md px-4 py-2 text-sm font-medium transition",
           view === "photos"
@@ -46,17 +59,6 @@ const galleries = view === "galleries" ? galleryQueries.list() : [];
         ]}
       >
         <span style="color:#fbbf24">★</span> Favoritas
-      </a>
-      <a
-        href="/?view=galleries"
-        class:list={[
-          "rounded-t-md px-4 py-2 text-sm font-medium transition",
-          view === "galleries"
-            ? "border-b-2 border-pink-500 text-neutral-100"
-            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100",
-        ]}
-      >
-        Galerías
       </a>
     </nav>
 

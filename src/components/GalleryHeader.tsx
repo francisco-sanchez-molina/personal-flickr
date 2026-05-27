@@ -59,7 +59,7 @@ export default function GalleryHeader({
         method: "DELETE",
       });
       if (res.ok) {
-        window.location.href = "/?view=galleries";
+        window.location.href = "/";
       } else {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail ?? body.error ?? "error");
