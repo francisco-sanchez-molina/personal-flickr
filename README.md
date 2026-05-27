@@ -137,8 +137,11 @@ El repo incluye un **`Dockerfile` multi-stage** (~750 MB) con:
 3. **Environment Variables** (en la pestaña Environment):
    ```
    APP_PASSWORD=loquequieras
-   SESSION_SECRET=<output de: openssl rand -hex 32>
+   NODE_ENV=production
    ```
+   `SESSION_SECRET` se autogenera y se persiste en `/data/.session-secret`
+   en el primer arranque. Solo defínelo manualmente si quieres rotación explícita.
+
    Variables opcionales con defaults:
    ```
    TARGET_SIZE_MB=2
@@ -200,7 +203,7 @@ docker exec <container> tar xzf /tmp/backup.tgz -C /
 | Var              | Default    | Descripción                                                |
 | ---------------- | ---------- | ---------------------------------------------------------- |
 | `APP_PASSWORD`   | _required_ | Contraseña para entrar                                     |
-| `SESSION_SECRET` | _required_ | Secret HMAC para firmar la cookie (`openssl rand -hex 32`) |
+| `SESSION_SECRET` | _auto_     | HMAC de la cookie. Si vacío, se genera + persiste en `$DATA_DIR/.session-secret` |
 | `TARGET_SIZE_MB` | `2`        | Tamaño objetivo del JPEG procesado                         |
 | `MAX_DIMENSION`  | `2560`     | Lado más largo tras resize                                 |
 | `DATA_DIR`       | `./data`   | Dónde se guarda todo (en Docker se setea a `/data`)        |
