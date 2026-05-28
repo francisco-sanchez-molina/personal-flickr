@@ -93,7 +93,15 @@ src/
 │   ├── auth.ts                Cookie issue / verify (HMAC).
 │   ├── cn.ts                  Re-export of clsx as `cn`.
 │   ├── config.ts              Env reading; DATA_DIR / APP_PASSWORD / NODE_ENV.
-│   ├── db.ts                  better-sqlite3, schema, prepared statements, types.
+│   ├── db/                    SQLite layer, split by entity (see below).
+│   │   ├── index.ts           Re-exports — `import from "~/lib/db"` still works.
+│   │   ├── connection.ts      Database instance, pragmas (WAL, FKs).
+│   │   ├── schema.ts          CREATE TABLE + idempotent addColumnIfMissing migrations.
+│   │   ├── photo.ts           Photo / PhotoUpsert + photoQueries.
+│   │   ├── gallery.ts         Gallery / GallerySummary + galleryQueries.
+│   │   ├── tag.ts             Tag / TagSummary + tagQueries.
+│   │   ├── smart-album.ts     SmartAlbum / SmartFilter + runSmartFilter.
+│   │   └── search.ts          search.photos / search.galleries (naive LIKE).
 │   ├── exif.ts                exifr-based EXIF extraction.
 │   ├── photo.ts               URL builders + display formatters over Photo.
 │   ├── processor.ts           sharp + sips/exiftool: RAW + develop + thumbs.
