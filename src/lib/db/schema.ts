@@ -195,3 +195,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_photo_shares_photo
     ON photo_shares(photo_id, created_at DESC);
 `);
+
+// Visit tracking — incremented once per landing-page hit (the binary
+// endpoint isn't counted, so a video's range requests don't inflate
+// the number).
+addColumnIfMissing("photo_shares", "view_count", "INTEGER NOT NULL DEFAULT 0");
+addColumnIfMissing("photo_shares", "last_viewed_at", "INTEGER");

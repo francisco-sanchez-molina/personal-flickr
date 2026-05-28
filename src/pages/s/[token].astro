@@ -13,6 +13,12 @@ const photo = share ? photoQueries.byId(share.photo_id) : null;
 if (!share || !photo) {
   // Use a real HTTP status so search engines / browsers cache appropriately.
   Astro.response.status = 404;
+} else {
+  // Bump the counter on every successful landing-page render. We do it
+  // here (not in /files/share/:token) so a video player issuing dozens
+  // of range requests doesn't inflate the total — one page load, one
+  // view. Fire-and-forget: the page renders the same regardless.
+  shareQueries.recordView(share.token);
 }
 
 // We deliberately link the binary endpoint, not the authed `/files/photo/`.

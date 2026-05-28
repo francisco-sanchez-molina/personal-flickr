@@ -30,6 +30,8 @@ interface PhotoShare {
   token: string;
   photo_id: number;
   created_at: number;
+  view_count: number;
+  last_viewed_at: number | null;
 }
 
 interface Props {
@@ -178,8 +180,12 @@ export default function ShareDialog({ open, onOpenChange, photoId }: Props) {
                     <div className="overflow-hidden font-mono text-[12px] text-ellipsis whitespace-nowrap text-ink-2">
                       {shareUrlFor(s.token)}
                     </div>
-                    <div className="mt-0.5 font-mono text-[10.5px] tracking-[.04em] text-ink-3">
-                      creado · {fmtCreated(s.created_at)}
+                    <div className="mt-0.5 flex flex-wrap gap-x-3 font-mono text-[10.5px] tracking-[.04em] text-ink-3">
+                      <span>creado · {fmtCreated(s.created_at)}</span>
+                      <span>
+                        <span className="text-ink-2">{s.view_count}</span>{" "}
+                        vista{s.view_count === 1 ? "" : "s"}
+                      </span>
                     </div>
                   </div>
                   <IconButton

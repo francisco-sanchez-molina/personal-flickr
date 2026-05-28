@@ -4,6 +4,7 @@ import Gallery from "~/components/gallery/Gallery.tsx";
 import GalleriesGrid from "~/components/gallery/GalleriesGrid.tsx";
 import SmartAlbumsManager from "~/components/gallery/SmartAlbumsManager.tsx";
 import TagsManager from "~/components/gallery/TagsManager.tsx";
+import SharesManager from "~/components/share/SharesManager.tsx";
 import EmptyState from "~/components/ui/EmptyState.astro";
 import SectionHead from "~/components/ui/SectionHead.astro";
 import {
@@ -11,6 +12,7 @@ import {
   photoQueries,
   runSmartFilter,
   search as dbSearch,
+  shareQueries,
   smartAlbumQueries,
   tagQueries,
   type SmartFilter,
@@ -30,6 +32,7 @@ const view:
   | "tags"
   | "smart-albums"
   | "smart"
+  | "shares"
   | "search" = q
   ? "search"
   : viewParam === "galleries"
@@ -46,7 +49,9 @@ const view:
               ? "smart-albums"
               : viewParam === "smart"
                 ? "smart"
-                : "home";
+                : viewParam === "shares"
+                  ? "shares"
+                  : "home";
 
 // Per-view data fetching
 let photos: ReturnType<typeof photoQueries.list> = [];
@@ -61,6 +66,9 @@ let featuredGallery: (typeof galleries)[number] | null = null;
 let smartAlbums: Array<{ id: number; name: string; filter: SmartFilter }> = [];
 let smartAlbumDetail: { id: number; name: string; filter: SmartFilter } | null =
   null;
+
+// Share rows (only used for view === "shares")
+let shares: ReturnType<typeof shareQueries.listAll> = [];
 
 if (view === "search") {
   photos = dbSearch.photos(q);
@@ -83,6 +91,8 @@ if (view === "search") {
     name: r.name,
     filter: safeJson(r.filter_json) as SmartFilter,
   }));
+} else if (view === "shares") {
+  shares = shareQueries.listAll();
 } else if (view === "smart") {
   if (Number.isInteger(smartIdParam) && smartIdParam > 0) {
     const album = smartAlbumQueries.byId(smartIdParam);
@@ -163,6 +173,9 @@ function relativeTime(ts: number): string {
             class:list={{ on: view === "smart-albums" || view === "smart" }}
           >
             Smart albums
+          </a>
+          <a href="/?view=shares" class:list={{ on: view === "shares" }}>
+            Compartidas
           </a>
         </nav>
       )
@@ -245,6 +258,19 @@ function relativeTime(ts: number): string {
             </span>
           </SectionHead>
           <SmartAlbumsManager client:load initial={smartAlbums} />
+        </section>
+      ) : view === "shares" ? (
+        <section>
+          <SectionHead
+            eyebrow="Enlaces públicos"
+            title="Compartidas"
+          >
+            <span slot="actions" class="count-chip">
+              {shares.length}{" "}
+              {shares.length === 1 ? "enlace" : "enlaces"}
+            </span>
+          </SectionHead>
+          <SharesManager client:load initial={shares} />
         </section>
       ) : view === "smart" ? (
         <section>

@@ -25,7 +25,7 @@ export { tagQueries } from "./tag";
 export type { SmartAlbum, SmartFilter } from "./smart-album";
 export { smartAlbumQueries, runSmartFilter } from "./smart-album";
 
-export type { PhotoShare } from "./share";
+export type { PhotoShare, PhotoShareWithPhoto } from "./share";
 export { shareQueries } from "./share";
 
 export { search } from "./search";
