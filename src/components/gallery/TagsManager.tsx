@@ -8,8 +8,10 @@
  */
 import { useState } from "react";
 import { Icons } from "../icons";
+import Button from "../ui/Button";
 import { useConfirm } from "../ui/ConfirmDialog";
 import ErrorText from "../ui/ErrorText";
+import IconButton from "../ui/IconButton";
 import {
   Popover,
   PopoverContent,
@@ -17,6 +19,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "../ui/Popover";
+import TextField from "../ui/TextField";
 
 interface Tag {
   id: number;
@@ -160,14 +163,13 @@ function TagChip({
       </a>
       <Popover open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
         <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="iconbtn h-[26px] w-[22px]"
+          <IconButton
             aria-label={`Acciones para ${tag.name}`}
             title="Acciones"
+            className="h-[26px] w-[22px]"
           >
             <Icons.More size={13} />
-          </button>
+          </IconButton>
         </PopoverTrigger>
         <PopoverContent side="bottom" align="end" className="w-[260px]">
           <PopoverHeader>
@@ -218,26 +220,25 @@ function TagChip({
                 if (ok) close();
               }}
             >
-              <div className="search px-2 py-1">
-                <input
-                  autoFocus
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  maxLength={40}
-                  placeholder="Nuevo nombre"
-                />
-              </div>
+              <TextField
+                density="compact"
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                maxLength={40}
+                placeholder="Nuevo nombre"
+              />
               <div className="flex gap-1.5">
-                <button type="submit" className="btn primary sm">
+                <Button type="submit" variant="primary" size="sm">
                   Guardar
-                </button>
-                <button
-                  type="button"
-                  className="btn ghost sm"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setMode("idle")}
                 >
                   Atrás
-                </button>
+                </Button>
               </div>
             </form>
           )}
@@ -265,13 +266,9 @@ function TagChip({
                   </button>
                 ))}
               </div>
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() => setMode("idle")}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setMode("idle")}>
                 Atrás
-              </button>
+              </Button>
             </div>
           )}
         </PopoverContent>

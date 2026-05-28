@@ -65,6 +65,15 @@ a {
   color: var(--ink-3);
 }
 
+/* Shared keyframe used by <Spinner /> in ui/Spinner.tsx. The tile-spin
+   keyframe in masonry.css is identical but local to that component
+   tree — duplicating here keeps both surfaces independent. */
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Respect `prefers-reduced-motion` globally — disable animations,
    transitions and the lightbox swipe-back-after-commit beat for users
    who've asked the OS to reduce motion (accessibility, also helps users

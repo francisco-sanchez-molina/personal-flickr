@@ -18,7 +18,9 @@
  */
 import { useState } from "react";
 import { Icons } from "../icons";
+import Button from "../ui/Button";
 import ErrorText from "../ui/ErrorText";
+import TextField from "../ui/TextField";
 
 export interface CreatedGallery {
   id: number;
@@ -98,25 +100,23 @@ export default function NewGalleryForm({
   };
 
   if (!editing) {
-    // Auto-width by default — sized to its content. The bulk-action and
-    // gallery-picker call sites used to want `w-full` (they sit alone
-    // inside a column-flow dialog), but in a row context (`GalleriesGrid`
-    // header) that 100% fights with siblings for space and triggers
-    // horizontal overflow on phones. Setting auto-width here and letting
-    // the column-flow callers stretch the parent container is cleaner.
+    // Auto-width — column-flow callers (bulk picker / lightbox picker)
+    // can wrap this with their own `w-full` container if they want a
+    // full-width affordance. In a row context (GalleriesGrid header)
+    // the auto-width prevents the button from fighting siblings for
+    // space and triggering mobile horizontal overflow.
     return (
-      <button
-        className="btn ghost sm border-dashed border-line-2"
+      <Button
+        variant="ghost"
+        size="sm"
+        className="border-dashed border-line-2"
         onClick={() => setEditing(true)}
-        type="button"
       >
         <Icons.Plus size={13} />{" "}
         {parentName ? `Nueva sub-galería en "${parentName}"` : "Nueva galería"}
-      </button>
+      </Button>
     );
   }
-
-  const inputPadding = variant === "compact" ? "px-2 py-1" : "px-2.5 py-1.5";
 
   return (
     <>
@@ -127,27 +127,22 @@ export default function NewGalleryForm({
           submit();
         }}
       >
-        <div className={`search flex-1 ${inputPadding}`}>
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre"
-            maxLength={80}
-            disabled={busy}
-          />
-        </div>
-        <button type="submit" className="btn primary sm" disabled={busy}>
-          Crear
-        </button>
-        <button
-          type="button"
-          className="btn ghost sm"
-          onClick={cancel}
+        <TextField
+          density={variant === "compact" ? "compact" : "default"}
+          containerClassName="flex-1"
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nombre"
+          maxLength={80}
           disabled={busy}
-        >
+        />
+        <Button type="submit" variant="primary" size="sm" disabled={busy}>
+          Crear
+        </Button>
+        <Button variant="ghost" size="sm" onClick={cancel} disabled={busy}>
           ✕
-        </button>
+        </Button>
       </form>
       <ErrorText message={error} className="mt-2.5" />
     </>
