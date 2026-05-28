@@ -89,7 +89,7 @@ export default function Rail({ current }: Props) {
               key={it.id}
               href={it.href}
               className="rail-btn"
-              aria-current={current === it.id || undefined}
+              aria-current={current === it.id ? "page" : undefined}
               aria-label={it.label}
             >
               {it.icon}

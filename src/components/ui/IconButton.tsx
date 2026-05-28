@@ -16,7 +16,12 @@ import { cn } from "~/lib/cn";
 interface Props extends Omit<ComponentPropsWithoutRef<"button">, "aria-label"> {
   /** Required so the button is announced to assistive tech. */
   "aria-label": string;
-  /** Visual active state — adds `.active` to the class list. */
+  /**
+   * Visual active state — adds `.active` to the class list.
+   * For toggle semantics, also pass `aria-pressed` so screen readers
+   * announce the state. `active` doesn't auto-emit it because some
+   * callsites use `.active` purely as a highlight (no toggle).
+   */
   active?: boolean;
   /** Extra utility classes appended after the base. */
   className?: string;

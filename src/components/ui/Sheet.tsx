@@ -106,8 +106,17 @@ export function SheetSection({
 }
 
 /**
- * Generic row item for use inside a sheet body. Renders as <a>, <button>, or
- * any tag — whatever you pass via `as`. Active state via `data-active`.
+ * Generic row item for use inside a sheet body. Renders as <a> or
+ * <button> via the `as` prop.
+ *
+ * Active state:
+ *   - sets `data-active=""` for CSS targeting,
+ *   - emits `aria-current="page"` when rendered as `<a>` (navigation),
+ *   - emits `aria-pressed` when rendered as `<button>` (toggle).
+ *
+ * This way the mobile menu's nav items get announced as "current page"
+ * and the mood toggles as "pressed" — both without callsites having to
+ * remember.
  */
 export function SheetItem({
   as: As = "button",
@@ -124,10 +133,15 @@ export function SheetItem({
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Tag = As as any;
+  const ariaProps =
+    As === "a"
+      ? { "aria-current": active ? "page" : undefined }
+      : { "aria-pressed": active === undefined ? undefined : active };
   return (
     <Tag
       className={cn("sheet-item", className)}
       data-active={active ? "" : undefined}
+      {...ariaProps}
       {...rest}
     >
       {children}

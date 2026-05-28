@@ -55,7 +55,10 @@ export default function Topbar({ title, breadcrumb, current, username }: Props) 
 
   return (
     <header className="topbar">
-      <div className="topbar-breadcrumb flex min-w-0 items-center gap-2.5">
+      <nav
+        aria-label="Breadcrumb"
+        className="topbar-breadcrumb flex min-w-0 items-center gap-2.5"
+      >
         {breadcrumb && breadcrumb.length > 0 ? (
           breadcrumb.map((c, i) => {
             const isLast = i === breadcrumb.length - 1;
@@ -69,7 +72,10 @@ export default function Topbar({ title, breadcrumb, current, username }: Props) 
                     {c.name}
                   </Button>
                 ) : (
-                  <span className="serif overflow-hidden text-[18px] text-ellipsis whitespace-nowrap text-ink">
+                  <span
+                    aria-current="page"
+                    className="serif overflow-hidden text-[18px] text-ellipsis whitespace-nowrap text-ink"
+                  >
                     {c.name}
                   </span>
                 )}
@@ -80,7 +86,7 @@ export default function Topbar({ title, breadcrumb, current, username }: Props) 
         ) : (
           <span className="serif text-[20px] text-ink">{title ?? ""}</span>
         )}
-      </div>
+      </nav>
 
       <form
         className="search"
