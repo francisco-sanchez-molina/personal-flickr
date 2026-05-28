@@ -11,8 +11,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 make g++ ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# pnpm via corepack
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+# Silence pnpm's update-notifier — it adds an ASCII box in every build
+# log noise and the version is already pinned right below this line.
+ENV CI=true
+
+# pnpm via corepack. Pinned to a specific version so the build is
+# reproducible across machines / over time (corepack will download
+# exactly this and fail if it can't, rather than silently using a
+# different one).
+RUN corepack enable && corepack prepare pnpm@11.4.0 --activate
 
 # Install deps (lockfile-driven). All deps + devDeps for the build step.
 COPY package.json pnpm-lock.yaml ./
