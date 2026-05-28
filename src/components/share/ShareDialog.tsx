@@ -146,7 +146,7 @@ export default function ShareDialog({ open, onOpenChange, photoId }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="sm">
+      <DialogContent size="md">
         <DialogHeader>
           <DialogTitle>Compartir foto</DialogTitle>
           <DialogClose asChild>

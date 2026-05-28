@@ -22,6 +22,14 @@
   position: fixed;
   left: 50%;
   top: 50%;
+  /* The animation only sets `transform` during its 180ms play; without
+     this base transform, the dialog snaps back to its raw position (top-
+     left corner at viewport center) the instant the animation ends and
+     hangs in the bottom-right quadrant. Keeping the centered translate
+     here means the animation's keyframes still own the motion but the
+     resting state stays put. Overridden to `none` in the mobile media
+     query below for the bottom-sheet layout. */
+  transform: translate(-50%, -50%);
   z-index: 111;
   max-height: calc(100vh - 32px);
   background: var(--surface);
