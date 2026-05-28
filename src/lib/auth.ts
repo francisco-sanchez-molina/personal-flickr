@@ -59,12 +59,31 @@ export function isAuthed(cookies: AstroCookies): boolean {
   return verifyToken(cookies.get(COOKIE_NAME)?.value);
 }
 
-export function login(cookies: AstroCookies, password: string): boolean {
-  // timing-safe password compare
-  const a = Buffer.from(password);
-  const b = Buffer.from(config.password);
-  if (a.length !== b.length) return false;
-  if (!crypto.timingSafeEqual(a, b)) return false;
+/**
+ * Verify a username + password pair against the env-configured credentials
+ * and, on success, issue the session cookie.
+ *
+ * Both compares are timing-safe to avoid leaking whether the *username*
+ * exists vs. the *password* is wrong via response time. The total compare
+ * always touches both Buffers regardless of which side mismatched.
+ */
+export function login(
+  cookies: AstroCookies,
+  username: string,
+  password: string,
+): boolean {
+  // Pad-to-equal-length pattern is the safe way to compare strings of
+  // potentially different lengths without leaking the length difference.
+  // We use Node's timingSafeEqual which requires equal-length buffers,
+  // so we hash both sides first (HMAC of the secret) — same length out
+  // regardless of input.
+  const hmac = (s: string) =>
+    crypto.createHmac("sha256", config.sessionSecret).update(s).digest();
+
+  const userOk = crypto.timingSafeEqual(hmac(username), hmac(config.username));
+  const passOk = crypto.timingSafeEqual(hmac(password), hmac(config.password));
+  if (!userOk || !passOk) return false;
+
   cookies.set(COOKIE_NAME, makeToken(), {
     httpOnly: true,
     sameSite: "lax",

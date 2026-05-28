@@ -27,9 +27,11 @@ interface Props {
     | "tags"
     | "map"
     | "other";
+  /** Current session's username, surfaced near the logout action. */
+  username?: string | null;
 }
 
-export default function MobileMenu({ open, onClose, current }: Props) {
+export default function MobileMenu({ open, onClose, current, username }: Props) {
   const { mood, theme, setMood, toggleTheme } = useThemePreferences();
 
   return (
@@ -98,7 +100,7 @@ export default function MobileMenu({ open, onClose, current }: Props) {
           </SheetItem>
         </SheetSection>
 
-        <SheetSection>
+        <SheetSection label={username ? `Sesión · ${username}` : undefined}>
           <form method="POST" action="/api/auth/logout" className="m-0">
             <SheetItem type="submit">
               <Icons.Close size={18} />

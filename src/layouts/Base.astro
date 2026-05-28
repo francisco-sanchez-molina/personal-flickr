@@ -35,6 +35,7 @@ const {
   currentGallery,
 } = Astro.props;
 const authed = Astro.locals.user != null;
+const username = Astro.locals.user?.username ?? null;
 ---
 
 <!doctype html>
@@ -115,6 +116,7 @@ const authed = Astro.locals.user != null;
               title={topbarTitle}
               breadcrumb={breadcrumb}
               current={current}
+              username={username}
             />
             <slot />
           </div>

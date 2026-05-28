@@ -43,6 +43,13 @@ function loadOrCreateSessionSecret(): string {
 }
 
 export const config = {
+  /**
+   * Login username. Defaults to "admin" for back-compat with the original
+   * password-only setup — existing deployments that only set APP_PASSWORD
+   * still work, the operator just needs to know "admin" goes in the user
+   * field. New deployments should set APP_USERNAME explicitly.
+   */
+  username: (process.env.APP_USERNAME ?? "admin").trim() || "admin",
   password: required("APP_PASSWORD"),
   sessionSecret: loadOrCreateSessionSecret(),
   targetSizeMB: Number(process.env.TARGET_SIZE_MB ?? "2"),

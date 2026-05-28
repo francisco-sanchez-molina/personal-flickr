@@ -29,9 +29,11 @@ interface Props {
     | "tags"
     | "map"
     | "other";
+  /** Logged-in username, surfaced in the mobile menu next to "Salir". */
+  username?: string | null;
 }
 
-export default function Topbar({ title, breadcrumb, current }: Props) {
+export default function Topbar({ title, breadcrumb, current, username }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -135,6 +137,7 @@ export default function Topbar({ title, breadcrumb, current }: Props) {
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         current={current}
+        username={username}
       />
     </header>
   );

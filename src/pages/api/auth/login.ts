@@ -36,8 +36,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect, clientAddress
   }
 
   const form = await request.formData();
+  const username = String(form.get("username") ?? "").trim();
   const password = String(form.get("password") ?? "");
-  if (!login(cookies, password)) {
+  if (!login(cookies, username, password)) {
     return redirect("/login?error=1", 303);
   }
   return redirect("/", 303);

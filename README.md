@@ -15,7 +15,7 @@
 
 ## Features
 
-- 🔐 **Login único** por password (env var) + cookie firmada HMAC
+- 🔐 **Login usuario + contraseña** (env vars) + cookie firmada HMAC + rate-limit 5 intentos/min/IP
 - 📤 **Upload drag&drop** con detección de colisión por nombre (Reemplazar / Renombrar / Cancelar)
 - 📸 **Soporta RAW** de cámara: CR2, CR3, NEF, ARW, DNG, RAF, ORF, RW2
   - macOS: usa `sips` built-in
@@ -207,6 +207,7 @@ docker exec <container> tar xzf /tmp/backup.tgz -C /
 
 | Var              | Default    | Descripción                                                |
 | ---------------- | ---------- | ---------------------------------------------------------- |
+| `APP_USERNAME`   | `admin`    | Usuario requerido en el login                              |
 | `APP_PASSWORD`   | _required_ | Contraseña para entrar                                     |
 | `SESSION_SECRET` | _auto_     | HMAC de la cookie. Si vacío, se genera + persiste en `$DATA_DIR/.session-secret` |
 | `TARGET_SIZE_MB` | `2`        | Tamaño objetivo del JPEG procesado                         |
