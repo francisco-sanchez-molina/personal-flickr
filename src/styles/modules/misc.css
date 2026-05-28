@@ -19,6 +19,16 @@
   gap: 0;
   border-bottom: 1px solid var(--line);
   margin: 0 0 26px;
+  /* On narrow viewports the 5 tabs don't fit in one row at 14px / 18px
+     padding. Allow horizontal scroll instead of letting flex squeeze
+     each tab and wrap its label across two lines (which is what was
+     happening to "★ Favoritas" on mobile). */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 .tabs a,
 .tabs button {
@@ -34,6 +44,11 @@
   font-weight: 500;
   transition: color 0.15s;
   text-decoration: none;
+  /* Keep each tab on a single line — "★ Favoritas" / "Smart albums"
+     should never break across two rows. Combined with the scroll
+     container above, this gives the standard mobile tab strip. */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .tabs a:first-child,
 .tabs button:first-child {

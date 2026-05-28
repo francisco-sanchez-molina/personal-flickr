@@ -54,6 +54,23 @@
     display: grid;
   }
 
+  /* Tabs: tighter on mobile so up to 4 fit in a 360px viewport before
+     scroll kicks in. The container already scrolls horizontally
+     (misc.css) — this just keeps the common case label-only visible. */
+  .tabs {
+    margin-bottom: 18px;
+  }
+  .tabs a,
+  .tabs button {
+    font-size: 13px;
+    padding: 11px 12px;
+  }
+  .tabs a.on::after,
+  .tabs button.on::after {
+    left: 12px;
+    right: 12px;
+  }
+
   .hero {
     aspect-ratio: 5/6;
   }
