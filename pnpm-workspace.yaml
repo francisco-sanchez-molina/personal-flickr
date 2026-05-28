@@ -1,15 +1,19 @@
 # pnpm 11+ moved repo-level settings out of `package.json#pnpm` (which is
-# now silently ignored) and into this file. Even for single-package
-# repos this is the supported home for things like onlyBuiltDependencies.
-# https://pnpm.io/settings#onlybuiltdependencies
-
-# Native modules whose install-time build script is allowed to run.
-# Anything not listed here gets its postinstall skipped — pnpm 10+ opts
-# out by default as a supply-chain hardening measure.
-onlyBuiltDependencies:
-  - better-sqlite3
-  - esbuild
-  - sharp
+# silently ignored now) and into this file. The "allowBuilds" map is the
+# new home of what used to be `onlyBuiltDependencies`: every dependency
+# with a build script must be listed explicitly with `true` (run its
+# postinstall) or `false` (skip it). Anything missing makes pnpm abort
+# with ERR_PNPM_IGNORED_BUILDS as a supply-chain safeguard.
+#
+# https://pnpm.io/settings#allowbuilds
+allowBuilds:
+  # Native modules we want compiled at install time.
+  better-sqlite3: true
+  esbuild: true
+  sharp: true
+  # devDep that downloads a binary on postinstall — not needed inside
+  # the Docker image (devDeps get pruned before runtime) so skip it.
+  cloudflared: false
 
 # Pin transitive versions that the Coolify build host's
 # `minimumReleaseAge` policy (~24h) rejects. The latest patches are
