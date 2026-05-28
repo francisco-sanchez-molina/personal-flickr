@@ -22,7 +22,11 @@ ENV CI=true
 RUN corepack enable && corepack prepare pnpm@11.4.0 --activate
 
 # Install deps (lockfile-driven). All deps + devDeps for the build step.
-COPY package.json pnpm-lock.yaml ./
+# pnpm-workspace.yaml carries repo-level settings (onlyBuiltDependencies,
+# overrides) in pnpm 11 — required here so `--frozen-lockfile` doesn't
+# error out with ERR_PNPM_LOCKFILE_CONFIG_MISMATCH because the lockfile
+# has an overrides block but the config in the image doesn't.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Build
