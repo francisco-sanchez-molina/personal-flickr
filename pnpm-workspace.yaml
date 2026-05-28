@@ -15,10 +15,3 @@ allowBuilds:
   # the Docker image (devDeps get pruned before runtime) so skip it.
   cloudflared: false
 
-# Pin transitive versions that the Coolify build host's
-# `minimumReleaseAge` policy (~24h) rejects. The latest patches are
-# bleeding-edge; we hold a slightly older release until the policy
-# clears them naturally.
-overrides:
-  lru-cache: 11.5.0
-  electron-to-chromium: 1.5.361
