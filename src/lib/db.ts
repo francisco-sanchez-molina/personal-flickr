@@ -132,6 +132,32 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_pg_gallery ON photo_galleries(gallery_id, added_at DESC);
   CREATE INDEX IF NOT EXISTS idx_pg_photo   ON photo_galleries(photo_id);
 `);
+
+// Per-gallery extensions (added 2026-05/06):
+//   - cover_photo_id: pin a specific photo as the cover. Without it the
+//     `list` query falls back to the most-recent photo (legacy behavior).
+//     SET NULL on photo delete so we can't end up with a dangling pointer.
+//   - parent_id: 1-level hierarchy. A gallery's children show under it
+//     in the detail page. Top-level listings filter parent_id IS NULL.
+//     SET NULL on parent delete so children survive as top-level.
+addColumnIfMissing("galleries", "cover_photo_id", "INTEGER REFERENCES photos(id) ON DELETE SET NULL");
+addColumnIfMissing("galleries", "parent_id", "INTEGER REFERENCES galleries(id) ON DELETE SET NULL");
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_galleries_parent ON galleries(parent_id);`,
+);
+
+// Smart albums — saved filter queries. The `filter_json` column holds a
+// validated SmartFilter object (see lib/validation.ts). Treated as a
+// derived view: deleting an album never affects the underlying photos.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS smart_albums (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    filter_json TEXT NOT NULL,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+`);
 // FK enforcement is per-connection in SQLite
 db.pragma("foreign_keys = ON");
 
@@ -423,12 +449,16 @@ export interface Gallery {
   description: string | null;
   created_at: number;
   updated_at: number;
+  /** Pinned cover photo. Null = fall back to most-recent. */
+  cover_photo_id: number | null;
+  /** 1-level hierarchy: optional parent gallery. */
+  parent_id: number | null;
 }
 
 export interface GallerySummary extends Gallery {
   /** Total photos in this gallery. */
   photo_count: number;
-  /** Filename of the most recently added/uploaded photo to use as cover. Null if empty. */
+  /** Filename of the resolved cover photo (pinned if set, else newest). Null if empty. */
   cover_name: string | null;
   /** developed_at of the cover photo for cache-busting the thumb URL. */
   cover_developed_at: number | null;
@@ -443,16 +473,28 @@ const galleryStmts = {
     "SELECT COUNT(*) AS c FROM galleries WHERE slug = ?",
   ),
   insert: db.prepare(
-    `INSERT INTO galleries (slug, name, description, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO galleries (slug, name, description, parent_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
   ),
   rename: db.prepare(
     `UPDATE galleries SET name = ?, slug = ?, updated_at = ? WHERE id = ?`,
   ),
+  setCover: db.prepare(
+    `UPDATE galleries SET cover_photo_id = ?, updated_at = ? WHERE id = ?`,
+  ),
+  setParent: db.prepare(
+    `UPDATE galleries SET parent_id = ?, updated_at = ? WHERE id = ?`,
+  ),
   delete: db.prepare("DELETE FROM galleries WHERE id = ?"),
   touch: db.prepare("UPDATE galleries SET updated_at = ? WHERE id = ?"),
 
-  // List with cover (most recent photo by uploaded_at) + count
+  /**
+   * List galleries with their resolved cover + photo count. The cover
+   * resolution uses COALESCE: prefer the explicitly-pinned `cover_photo_id`
+   * (US-08), else fall back to the most-recently-uploaded photo in the
+   * gallery. Filtering by `parent_id` lets the same query power both the
+   * top-level grid (parent IS NULL) and a gallery's children list.
+   */
   list: db.prepare<[], GallerySummary>(`
     SELECT
       g.*,
@@ -465,14 +507,41 @@ const galleryStmts = {
       FROM photo_galleries
       GROUP BY gallery_id
     ) pc ON pc.gallery_id = g.id
-    LEFT JOIN photos cover ON cover.id = (
-      SELECT p.id FROM photos p
-      JOIN photo_galleries pg ON pg.photo_id = p.id
-      WHERE pg.gallery_id = g.id
-      ORDER BY p.uploaded_at DESC, p.id DESC
-      LIMIT 1
+    LEFT JOIN photos cover ON cover.id = COALESCE(
+      g.cover_photo_id,
+      (SELECT p.id FROM photos p
+       JOIN photo_galleries pg ON pg.photo_id = p.id
+       WHERE pg.gallery_id = g.id
+       ORDER BY p.uploaded_at DESC, p.id DESC
+       LIMIT 1)
     )
+    WHERE g.parent_id IS NULL
     ORDER BY g.updated_at DESC, g.id DESC
+  `),
+
+  // Same shape as `list`, but scoped to children of one parent.
+  listChildren: db.prepare<[number], GallerySummary>(`
+    SELECT
+      g.*,
+      COALESCE(pc.cnt, 0) AS photo_count,
+      cover.name AS cover_name,
+      cover.developed_at AS cover_developed_at
+    FROM galleries g
+    LEFT JOIN (
+      SELECT gallery_id, COUNT(*) AS cnt
+      FROM photo_galleries
+      GROUP BY gallery_id
+    ) pc ON pc.gallery_id = g.id
+    LEFT JOIN photos cover ON cover.id = COALESCE(
+      g.cover_photo_id,
+      (SELECT p.id FROM photos p
+       JOIN photo_galleries pg ON pg.photo_id = p.id
+       WHERE pg.gallery_id = g.id
+       ORDER BY p.uploaded_at DESC, p.id DESC
+       LIMIT 1)
+    )
+    WHERE g.parent_id = ?
+    ORDER BY g.name COLLATE NOCASE ASC
   `),
 
   // Photos in a gallery (sorted by upload date)
@@ -513,18 +582,32 @@ export const galleryQueries = {
     (galleryStmts.slugExists.get(slug)?.c ?? 0) > 0,
 
   list: () => galleryStmts.list.all(),
+  listChildren: (parentId: number) => galleryStmts.listChildren.all(parentId),
   photosOf: (galleryId: number) => galleryStmts.photosOf.all(galleryId),
   galleriesOfPhoto: (photoId: number) =>
     galleryStmts.galleriesOfPhoto.all(photoId),
 
-  create: (slug: string, name: string, description: string | null) => {
+  create: (
+    slug: string,
+    name: string,
+    description: string | null,
+    parentId: number | null = null,
+  ) => {
     const now = Date.now();
-    const r = galleryStmts.insert.run(slug, name, description, now, now);
+    const r = galleryStmts.insert.run(slug, name, description, parentId, now, now);
     return Number(r.lastInsertRowid);
   },
 
   rename: (id: number, name: string, slug: string) => {
     galleryStmts.rename.run(name, slug, Date.now(), id);
+  },
+
+  setCover: (id: number, photoId: number | null) => {
+    galleryStmts.setCover.run(photoId, Date.now(), id);
+  },
+
+  setParent: (id: number, parentId: number | null) => {
+    galleryStmts.setParent.run(parentId, Date.now(), id);
   },
 
   delete: (id: number) => galleryStmts.delete.run(id),
@@ -571,6 +654,18 @@ const tagStmts = {
   byName: db.prepare<[string], Tag>("SELECT * FROM tags WHERE name = ?"),
   insert: db.prepare(
     `INSERT INTO tags (name, created_at) VALUES (?, ?)`,
+  ),
+  rename: db.prepare(`UPDATE tags SET name = ? WHERE id = ?`),
+  delete: db.prepare(`DELETE FROM tags WHERE id = ?`),
+  // Merge: copy memberships from `from_id` to `into_id` (INSERT OR IGNORE
+  // dedupes when a photo already has the destination tag), then drop the
+  // source rows. Caller deletes the source tag afterwards.
+  copyMembershipsFromTo: db.prepare(
+    `INSERT OR IGNORE INTO photo_tags (photo_id, tag_id, added_at)
+     SELECT photo_id, ?, added_at FROM photo_tags WHERE tag_id = ?`,
+  ),
+  removeAllMembershipsOf: db.prepare(
+    `DELETE FROM photo_tags WHERE tag_id = ?`,
   ),
   // List with photo counts, ordered by popularity then alphabetically
   list: db.prepare<[], TagSummary>(`
@@ -633,7 +728,160 @@ export const tagQueries = {
     // Prune the tag itself if nobody else references it
     tagStmts.pruneOrphans.run();
   },
+
+  rename: (id: number, name: string) => {
+    tagStmts.rename.run(name.trim(), id);
+  },
+
+  /**
+   * Merge `fromId` into `intoId`: every photo tagged with `fromId` ends
+   * up tagged with `intoId` (dedup is automatic via INSERT OR IGNORE),
+   * then the source tag's memberships are wiped and the tag row is
+   * deleted. Wrapped in a transaction so we never leave the DB half-
+   * merged.
+   */
+  merge: db.transaction((fromId: number, intoId: number) => {
+    if (fromId === intoId) return;
+    tagStmts.copyMembershipsFromTo.run(intoId, fromId);
+    tagStmts.removeAllMembershipsOf.run(fromId);
+    tagStmts.delete.run(fromId);
+  }),
 };
+
+// ============================================================
+//  Smart albums (saved filters)
+// ============================================================
+
+export interface SmartAlbum {
+  id: number;
+  name: string;
+  filter_json: string;
+  created_at: number;
+  updated_at: number;
+}
+
+const smartAlbumStmts = {
+  byId: db.prepare<[number], SmartAlbum>(
+    `SELECT * FROM smart_albums WHERE id = ?`,
+  ),
+  list: db.prepare<[], SmartAlbum>(
+    `SELECT * FROM smart_albums ORDER BY updated_at DESC, id DESC`,
+  ),
+  insert: db.prepare(
+    `INSERT INTO smart_albums (name, filter_json, created_at, updated_at)
+     VALUES (?, ?, ?, ?)`,
+  ),
+  update: db.prepare(
+    `UPDATE smart_albums SET name = ?, filter_json = ?, updated_at = ? WHERE id = ?`,
+  ),
+  delete: db.prepare(`DELETE FROM smart_albums WHERE id = ?`),
+};
+
+export const smartAlbumQueries = {
+  byId: (id: number) => smartAlbumStmts.byId.get(id) ?? null,
+  list: () => smartAlbumStmts.list.all(),
+  create: (name: string, filterJson: string) => {
+    const now = Date.now();
+    const r = smartAlbumStmts.insert.run(name, filterJson, now, now);
+    return Number(r.lastInsertRowid);
+  },
+  update: (id: number, name: string, filterJson: string) => {
+    smartAlbumStmts.update.run(name, filterJson, Date.now(), id);
+  },
+  delete: (id: number) => smartAlbumStmts.delete.run(id),
+};
+
+/**
+ * The shape of a smart-album filter. All fields optional; missing ones
+ * don't constrain the result. Range fields are inclusive on both ends.
+ *
+ * Stored as JSON in `smart_albums.filter_json`; validated through Zod
+ * (see lib/validation.ts) before reaching this layer.
+ */
+export interface SmartFilter {
+  camera?: string;
+  lens?: string;
+  kind?: "photo" | "video";
+  isFavorite?: boolean;
+  withoutGallery?: boolean;
+  galleryId?: number;
+  isoMin?: number;
+  isoMax?: number;
+  fstopMin?: number;
+  fstopMax?: number;
+  takenFrom?: number; // unix ms
+  takenTo?: number; // unix ms
+}
+
+/**
+ * Run a smart-album filter and return matching photos.
+ *
+ * Built as a parameterized SQL query — every user-supplied value goes
+ * through a `?` placeholder; no string interpolation reaches the SQL
+ * text. The shape of the predicates is data-driven (omit clauses for
+ * unset fields) which is the only safe way to compose a dynamic WHERE.
+ */
+export function runSmartFilter(filter: SmartFilter): Photo[] {
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (filter.camera) {
+    where.push(`p.camera = ?`);
+    params.push(filter.camera);
+  }
+  if (filter.lens) {
+    where.push(`p.lens = ?`);
+    params.push(filter.lens);
+  }
+  if (filter.kind) {
+    where.push(`p.kind = ?`);
+    params.push(filter.kind);
+  }
+  if (filter.isFavorite !== undefined) {
+    where.push(`p.is_favorite = ?`);
+    params.push(filter.isFavorite ? 1 : 0);
+  }
+  if (filter.isoMin !== undefined) {
+    where.push(`p.iso >= ?`);
+    params.push(filter.isoMin);
+  }
+  if (filter.isoMax !== undefined) {
+    where.push(`p.iso <= ?`);
+    params.push(filter.isoMax);
+  }
+  if (filter.fstopMin !== undefined) {
+    where.push(`p.fstop >= ?`);
+    params.push(filter.fstopMin);
+  }
+  if (filter.fstopMax !== undefined) {
+    where.push(`p.fstop <= ?`);
+    params.push(filter.fstopMax);
+  }
+  if (filter.takenFrom !== undefined) {
+    where.push(`p.taken_at >= ?`);
+    params.push(filter.takenFrom);
+  }
+  if (filter.takenTo !== undefined) {
+    where.push(`p.taken_at <= ?`);
+    params.push(filter.takenTo);
+  }
+  if (filter.withoutGallery) {
+    where.push(
+      `NOT EXISTS (SELECT 1 FROM photo_galleries pg WHERE pg.photo_id = p.id)`,
+    );
+  }
+  if (filter.galleryId !== undefined) {
+    where.push(
+      `EXISTS (SELECT 1 FROM photo_galleries pg WHERE pg.photo_id = p.id AND pg.gallery_id = ?)`,
+    );
+    params.push(filter.galleryId);
+  }
+
+  const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+  const sql = `SELECT p.* FROM photos p ${whereSql}
+               ORDER BY p.uploaded_at DESC, p.id DESC`;
+  return db.prepare<typeof params, Photo>(sql).all(...params);
+}
 
 // ============================================================
 //  Search

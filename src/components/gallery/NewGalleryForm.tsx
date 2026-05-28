@@ -28,12 +28,31 @@ export interface CreatedGallery {
 }
 
 interface Props {
-  onCreated: (gallery: CreatedGallery) => void | Promise<void>;
+  /**
+   * Optional — fires after a successful create with the freshly-created
+   * gallery row. When omitted (e.g. the sub-galleries section on a
+   * gallery detail page) we reload the page so server-side data picks
+   * the new row up.
+   */
+  onCreated?: (gallery: CreatedGallery) => void | Promise<void>;
   /** Compact mode shrinks input padding — for popovers. */
   variant?: "default" | "compact";
+  /**
+   * When set, the created gallery is nested under this parent. Used by
+   * the "Sub-galerías" section on `/g/:slug` — children show only there.
+   * The API enforces the 1-level depth rule.
+   */
+  parentId?: number;
+  /** Display-only — surfaces "Anidada bajo X" in the button label. */
+  parentName?: string;
 }
 
-export default function NewGalleryForm({ onCreated, variant = "default" }: Props) {
+export default function NewGalleryForm({
+  onCreated,
+  variant = "default",
+  parentId,
+  parentName,
+}: Props) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -48,11 +67,21 @@ export default function NewGalleryForm({ onCreated, variant = "default" }: Props
       const res = await fetch("/api/galleries", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({
+          name: trimmed,
+          ...(parentId != null ? { parentId } : {}),
+        }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
-      await onCreated(body.gallery);
+      if (onCreated) {
+        await onCreated(body.gallery);
+      } else {
+        // No callback registered — assume the caller is a server-rendered
+        // page that needs a refresh to surface the new row.
+        window.location.reload();
+        return;
+      }
       setName("");
       setEditing(false);
     } catch (e: unknown) {
@@ -75,7 +104,8 @@ export default function NewGalleryForm({ onCreated, variant = "default" }: Props
         onClick={() => setEditing(true)}
         type="button"
       >
-        <Icons.Plus size={13} /> Nueva galería
+        <Icons.Plus size={13} />{" "}
+        {parentName ? `Nueva sub-galería en "${parentName}"` : "Nueva galería"}
       </button>
     );
   }

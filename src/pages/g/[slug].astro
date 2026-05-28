@@ -2,8 +2,10 @@
 import Base from "~/layouts/Base.astro";
 import Gallery from "~/components/gallery/Gallery.tsx";
 import GalleryHeader from "~/components/gallery/GalleryHeader.tsx";
+import NewGalleryForm from "~/components/gallery/NewGalleryForm.tsx";
 import EmptyState from "~/components/ui/EmptyState.astro";
-import { galleryQueries } from "~/lib/db";
+import SectionHead from "~/components/ui/SectionHead.astro";
+import { galleryQueries, photoQueries } from "~/lib/db";
 
 const slug = Astro.params.slug;
 if (!slug) return Astro.redirect("/");
@@ -14,7 +16,22 @@ if (!gallery) {
 }
 
 const photos = galleryQueries.photosOf(gallery.id);
-const cover = photos[0];
+// Cover resolution: pinned id wins, else newest photo (photos[0] because
+// the query orders by uploaded_at desc).
+const pinnedCover =
+  gallery.cover_photo_id != null ? photoQueries.byId(gallery.cover_photo_id) : null;
+const cover = pinnedCover ?? photos[0] ?? null;
+
+// Sub-galleries hosted under this one (US-11). Only relevant for
+// top-level galleries — children themselves can't have children
+// (enforced by the API).
+const children =
+  gallery.parent_id == null ? galleryQueries.listChildren(gallery.id) : [];
+
+// Parent (US-11). When this is a child gallery, surface it in the
+// breadcrumb so the user can navigate back up the hierarchy.
+const parentGallery =
+  gallery.parent_id != null ? galleryQueries.byId(gallery.parent_id) : null;
 
 const dates = photos
   .map((p) => p.uploaded_at)
@@ -32,11 +49,23 @@ const period =
     ? `${fmtDate(Math.min(...dates))} → ${fmtDate(Math.max(...dates))}`
     : "—";
 const totalSize = photos.reduce((acc, p) => acc + (p.size_bytes ?? 0), 0);
+
+// Build the breadcrumb chain. Always starts at /?view=galleries; inserts
+// the parent gallery between when present.
+// Explicit element type so TS doesn't infer `href: string` (required) on
+// the first push and then reject the no-href last crumb.
+const crumbs: Array<{ name: string; href?: string }> = [
+  { name: "Galerías", href: "/?view=galleries" },
+];
+if (parentGallery) {
+  crumbs.push({ name: parentGallery.name, href: `/g/${parentGallery.slug}` });
+}
+crumbs.push({ name: gallery.name });
 ---
 
 <Base
   current="galleries"
-  breadcrumb={{ parent: "Galerías", parentHref: "/?view=galleries", title: gallery.name }}
+  breadcrumb={crumbs}
   currentGallery={{ id: gallery.id, name: gallery.name }}
 >
   <main class="main">
@@ -95,6 +124,73 @@ const totalSize = photos.reduce((acc, p) => acc + (p.size_bytes ?? 0), 0);
         <div class="val s">{fmtSize(totalSize)}</div>
       </div>
     </div>
+
+    {/* Sub-galleries (US-11) — only on top-level galleries. */}
+    {
+      gallery.parent_id == null && (
+        <section class="mt-10">
+          <SectionHead
+            eyebrow="Anidadas bajo esta galería"
+            title="Sub-galerías"
+          >
+            <span slot="actions" class="count-chip">
+              {children.length}{" "}
+              {children.length === 1 ? "galería" : "galerías"}
+            </span>
+          </SectionHead>
+
+          <div class="mb-4">
+            <NewGalleryForm
+              client:load
+              variant="compact"
+              parentId={gallery.id}
+              parentName={gallery.name}
+            />
+          </div>
+
+          {children.length === 0 ? (
+            <p class="m-0 font-mono text-[12px] tracking-[.04em] text-ink-3">
+              Sin sub-galerías. Crea una con el botón de arriba para anidar
+              colecciones bajo "{gallery.name}".
+            </p>
+          ) : (
+            <div class="gallery-grid">
+              {children.map((g) => (
+                <a href={`/g/${g.slug}`} class="gcard" aria-label={g.name}>
+                  <div class="gcard-cover">
+                    {g.cover_name ? (
+                      <img
+                        src={`/files/photo/${encodeURIComponent(g.cover_name)}?v=${g.cover_developed_at ?? 0}`}
+                        alt={g.name}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div class="gcard-empty">◌</div>
+                    )}
+                    {g.cover_name && (
+                      <div class="badge">{g.photo_count} fotos</div>
+                    )}
+                  </div>
+                  <div class="gcard-meta">
+                    <div>
+                      <h3>{g.name}</h3>
+                      {g.description && (
+                        <div class="mt-1 overflow-hidden text-xs text-ink-3 text-ellipsis whitespace-nowrap">
+                          {g.description}
+                        </div>
+                      )}
+                    </div>
+                    <div class="mono">
+                      {String(g.photo_count).padStart(3, "0")}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
+      )
+    }
 
     {
       photos.length === 0 ? (

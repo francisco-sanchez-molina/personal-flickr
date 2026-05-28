@@ -2,17 +2,23 @@
 import Base from "~/layouts/Base.astro";
 import Gallery from "~/components/gallery/Gallery.tsx";
 import GalleriesGrid from "~/components/gallery/GalleriesGrid.tsx";
+import SmartAlbumsManager from "~/components/gallery/SmartAlbumsManager.tsx";
+import TagsManager from "~/components/gallery/TagsManager.tsx";
 import EmptyState from "~/components/ui/EmptyState.astro";
 import SectionHead from "~/components/ui/SectionHead.astro";
 import {
   galleryQueries,
   photoQueries,
+  runSmartFilter,
   search as dbSearch,
+  smartAlbumQueries,
   tagQueries,
+  type SmartFilter,
 } from "~/lib/db";
 
 const viewParam = Astro.url.searchParams.get("view");
 const tagParam = Astro.url.searchParams.get("tag");
+const smartIdParam = Number(Astro.url.searchParams.get("id"));
 const q = (Astro.url.searchParams.get("q") ?? "").trim();
 
 const view:
@@ -22,6 +28,8 @@ const view:
   | "favorites"
   | "orphans"
   | "tags"
+  | "smart-albums"
+  | "smart"
   | "search" = q
   ? "search"
   : viewParam === "galleries"
@@ -34,7 +42,11 @@ const view:
           ? "orphans"
           : viewParam === "tags"
             ? "tags"
-            : "home";
+            : viewParam === "smart-albums"
+              ? "smart-albums"
+              : viewParam === "smart"
+                ? "smart"
+                : "home";
 
 // Per-view data fetching
 let photos: ReturnType<typeof photoQueries.list> = [];
@@ -45,6 +57,10 @@ let activeTag: ReturnType<typeof tagQueries.byName> = null;
 let recentPhotos: ReturnType<typeof photoQueries.list> = [];
 let totalPhotoCount = 0;
 let featuredGallery: (typeof galleries)[number] | null = null;
+// Smart-album data (only used for view === "smart-albums" / "smart")
+let smartAlbums: Array<{ id: number; name: string; filter: SmartFilter }> = [];
+let smartAlbumDetail: { id: number; name: string; filter: SmartFilter } | null =
+  null;
 
 if (view === "search") {
   photos = dbSearch.photos(q);
@@ -61,6 +77,21 @@ if (view === "search") {
     activeTag = tagQueries.byName(tagParam);
     if (activeTag) photos = tagQueries.photosOfTag(activeTag.id);
   }
+} else if (view === "smart-albums") {
+  smartAlbums = smartAlbumQueries.list().map((r) => ({
+    id: r.id,
+    name: r.name,
+    filter: safeJson(r.filter_json) as SmartFilter,
+  }));
+} else if (view === "smart") {
+  if (Number.isInteger(smartIdParam) && smartIdParam > 0) {
+    const album = smartAlbumQueries.byId(smartIdParam);
+    if (album) {
+      const filter = safeJson(album.filter_json) as SmartFilter;
+      smartAlbumDetail = { id: album.id, name: album.name, filter };
+      photos = runSmartFilter(filter);
+    }
+  }
 } else if (view === "galleries") {
   galleries = galleryQueries.list();
   orphanCount = photoQueries.countOrphans();
@@ -74,6 +105,14 @@ if (view === "search") {
     galleries.find((g) => g.cover_name) ?? galleries[0] ?? null;
   totalPhotoCount = photoQueries.count();
   recentPhotos = photoQueries.listRecent(24);
+}
+
+function safeJson(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return {};
+  }
 }
 
 const railCurrent =
@@ -118,6 +157,12 @@ function relativeTime(ts: number): string {
           </a>
           <a href="/?view=tags" class:list={{ on: view === "tags" }}>
             Etiquetas
+          </a>
+          <a
+            href="/?view=smart-albums"
+            class:list={{ on: view === "smart-albums" || view === "smart" }}
+          >
+            Smart albums
           </a>
         </nav>
       )
@@ -188,6 +233,54 @@ function relativeTime(ts: number): string {
           initial={galleries}
           orphanCount={orphanCount}
         />
+      ) : view === "smart-albums" ? (
+        <section>
+          <SectionHead
+            eyebrow="Filtros guardados"
+            title="Smart albums"
+          >
+            <span slot="actions" class="count-chip">
+              {smartAlbums.length}{" "}
+              {smartAlbums.length === 1 ? "album" : "albums"}
+            </span>
+          </SectionHead>
+          <SmartAlbumsManager client:load initial={smartAlbums} />
+        </section>
+      ) : view === "smart" ? (
+        <section>
+          {smartAlbumDetail ? (
+            <>
+              <SectionHead
+                eyebrow="Smart album"
+                title={smartAlbumDetail.name}
+              >
+                <span slot="actions" class="count-chip">
+                  {photos.length}{" "}
+                  {photos.length === 1 ? "foto" : "fotos"}
+                </span>
+              </SectionHead>
+              <a
+                href="/?view=smart-albums"
+                class="btn ghost sm mb-[18px] inline-flex"
+              >
+                ← Smart albums
+              </a>
+              {photos.length === 0 ? (
+                <EmptyState
+                  title="Sin coincidencias."
+                  sub="Ajusta el filtro o sube fotos que cumplan los criterios."
+                />
+              ) : (
+                <Gallery client:load initial={photos} />
+              )}
+            </>
+          ) : (
+            <EmptyState
+              title="Smart album no encontrado."
+              sub="Probablemente lo has borrado o el link es viejo."
+            />
+          )}
+        </section>
       ) : view === "tags" && !activeTag ? (
         <section>
           <SectionHead eyebrow="Organizadas por concepto" title="Etiquetas">
@@ -199,17 +292,7 @@ function relativeTime(ts: number): string {
               sub='Abre una foto y usa la sección "Etiquetas" del panel lateral para añadirlas.'
             />
           ) : (
-            <div class="chips max-w-[900px] gap-1.5">
-              {tags.map((t) => (
-                <a
-                  href={`/?view=tags&tag=${encodeURIComponent(t.name)}`}
-                  class="chip"
-                >
-                  {t.name}{" "}
-                  <span class="ml-1 opacity-55">{t.photo_count}</span>
-                </a>
-              ))}
-            </div>
+            <TagsManager client:load initial={tags} />
           )}
         </section>
       ) : view === "search" ? (

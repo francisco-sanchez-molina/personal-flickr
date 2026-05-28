@@ -68,6 +68,8 @@ export const GalleryCreateBody = z.object({
     .pipe(z.string().min(1))
     .optional()
     .nullable(),
+  /** Optional parent gallery — enforced 1-level deep by the endpoint. */
+  parentId: idParam.optional().nullable(),
 });
 
 export const GalleryUpdateBody = z
@@ -78,11 +80,19 @@ export const GalleryUpdateBody = z
       .transform((s) => s.trim().slice(0, 500))
       .nullable()
       .optional(),
+    /** Pin a specific photo as the cover; `null` to clear back to "newest". */
+    coverPhotoId: idParam.nullable().optional(),
+    /** Re-parent this gallery; `null` to make it top-level. */
+    parentId: idParam.nullable().optional(),
   })
-  // At least one field present.
-  .refine((o) => o.name !== undefined || o.description !== undefined, {
-    message: "Nothing to update",
-  });
+  .refine(
+    (o) =>
+      o.name !== undefined ||
+      o.description !== undefined ||
+      o.coverPhotoId !== undefined ||
+      o.parentId !== undefined,
+    { message: "Nothing to update" },
+  );
 
 // ───────────────── gallery: add photo ─────────────────
 
@@ -90,7 +100,7 @@ export const AddPhotoBody = z.object({
   photoId: idParam,
 });
 
-// ───────────────── tag: create / attach ─────────────────
+// ───────────────── tag: create / attach / rename / merge ─────────────────
 
 export const TagCreateBody = z.object({
   name: trimmed(40),
@@ -99,6 +109,53 @@ export const TagCreateBody = z.object({
 export const AttachTagBody = z.object({
   tagId: idParam,
 });
+
+export const TagRenameBody = z.object({
+  name: trimmed(40),
+});
+
+export const TagMergeBody = z.object({
+  /** ID of the tag to merge `this` into. Must be different. */
+  intoId: idParam,
+});
+
+// ───────────────── smart album: filter + CRUD ─────────────────
+
+/**
+ * Saved-filter shape. Mirrors `SmartFilter` from lib/db.ts. Every field
+ * is optional — an empty object matches every photo. Numeric bounds are
+ * inclusive on both ends.
+ */
+export const SmartFilterSchema = z
+  .object({
+    camera: trimmed(80).optional(),
+    lens: trimmed(120).optional(),
+    kind: z.union([z.literal("photo"), z.literal("video")]).optional(),
+    isFavorite: z.boolean().optional(),
+    withoutGallery: z.boolean().optional(),
+    galleryId: idParam.optional(),
+    isoMin: z.number().int().nonnegative().optional(),
+    isoMax: z.number().int().nonnegative().optional(),
+    fstopMin: z.number().nonnegative().optional(),
+    fstopMax: z.number().nonnegative().optional(),
+    takenFrom: z.number().int().optional(),
+    takenTo: z.number().int().optional(),
+  })
+  .strict();
+
+export const SmartAlbumCreateBody = z.object({
+  name: trimmed(80),
+  filter: SmartFilterSchema,
+});
+
+export const SmartAlbumUpdateBody = z
+  .object({
+    name: trimmed(80).optional(),
+    filter: SmartFilterSchema.optional(),
+  })
+  .refine((o) => o.name !== undefined || o.filter !== undefined, {
+    message: "Nothing to update",
+  });
 
 // ───────────────── runtime helper ─────────────────
 

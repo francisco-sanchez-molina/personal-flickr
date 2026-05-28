@@ -16,9 +16,14 @@ interface Props {
     | "tags"
     | "map"
     | "other";
-  /** Title shown in the topbar (or used as the right side of a breadcrumb). */
+  /** Title shown in the topbar when no breadcrumb chain is set. */
   topbarTitle?: string;
-  breadcrumb?: { parent: string; parentHref: string; title: string };
+  /**
+   * Breadcrumb chain rendered in the topbar (`Galerías / Viajes / Roma`).
+   * The last entry is treated as the current page — no link. Earlier
+   * entries link via their `href`.
+   */
+  breadcrumb?: Array<{ name: string; href?: string }>;
   /** When set, uploads default to this gallery (used on /g/{slug}). */
   currentGallery?: { id: number; name: string };
 }

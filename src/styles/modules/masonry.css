@@ -1,49 +1,16 @@
-/* ───────────────────────── Masonry ───────────────────────── */
-.masonry {
-  column-count: 4;
-  column-gap: var(--grid-gap);
-}
-@media (max-width: 1400px) {
-  .masonry {
-    column-count: 3;
-  }
-}
-@media (max-width: 900px) {
-  .masonry {
-    column-count: 2;
-  }
-}
-@media (max-width: 560px) {
-  .masonry {
-    column-count: 1;
-  }
-}
-:root[data-density="compact"] .masonry {
-  column-count: 5;
-}
-@media (max-width: 1400px) {
-  :root[data-density="compact"] .masonry {
-    column-count: 4;
-  }
-}
-:root[data-density="comfy"] .masonry {
-  column-count: 3;
-}
-@media (max-width: 1100px) {
-  :root[data-density="comfy"] .masonry {
-    column-count: 2;
-  }
-}
+/* ───────────────────────── Photo grid (justified rows) ─────────────────────────
+   Layout is computed in JS (PhotoGrid.tsx) so we can virtualize with
+   @tanstack/react-virtual. Width/height of each tile are set inline; we
+   only style the visual chrome here. */
 
 .tile {
-  break-inside: avoid;
-  margin-bottom: var(--grid-gap);
+  position: relative;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  position: relative;
   background: var(--bg-2);
   border: 1px solid var(--line);
   cursor: pointer;
+  flex: 0 0 auto;
   transition:
     border-color 0.2s,
     transform 0.2s var(--ease);
@@ -53,7 +20,8 @@
 }
 .tile img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   display: block;
   transition: transform 0.5s var(--ease);
 }

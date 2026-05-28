@@ -20,6 +20,7 @@
     "@astrojs/react": "^4.2.1",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-popover": "^1.1.15",
+    "@tanstack/react-virtual": "^3.13.26",
     "@types/better-sqlite3": "^7.6.12",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",

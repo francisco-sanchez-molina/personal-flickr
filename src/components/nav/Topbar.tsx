@@ -2,11 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { Icons } from "../icons";
 import MobileMenu from "./MobileMenu";
 
+/**
+ * A crumb in the breadcrumb chain. `href` is omitted for the last (current)
+ * crumb so it renders as plain text rather than a link.
+ */
+interface Crumb {
+  name: string;
+  href?: string;
+}
+
 interface Props {
-  /** Optional breadcrumb shown on the left of the topbar. */
+  /** Optional plain title (used when there's no breadcrumb chain). */
   title?: string;
-  /** Slug for back-to-galleries chip. If set, shows breadcrumb 'Galerías / title'. */
-  breadcrumb?: { parent: string; parentHref: string; title: string };
+  /**
+   * Chain of crumbs rendered left-to-right with `/` separators. The last
+   * one is treated as the current location (no link).  When this is set,
+   * `title` is ignored.
+   */
+  breadcrumb?: Crumb[];
   /** Used by the mobile menu to mark the current nav item. */
   current?:
     | "home"
@@ -49,16 +62,27 @@ export default function Topbar({ title, breadcrumb, current }: Props) {
   return (
     <header className="topbar">
       <div className="topbar-breadcrumb flex min-w-0 items-center gap-2.5">
-        {breadcrumb ? (
-          <>
-            <a className="btn ghost sm" href={breadcrumb.parentHref}>
-              {breadcrumb.parent}
-            </a>
-            <span className="text-ink-4">/</span>
-            <span className="serif overflow-hidden text-[18px] text-ellipsis whitespace-nowrap text-ink">
-              {breadcrumb.title}
-            </span>
-          </>
+        {breadcrumb && breadcrumb.length > 0 ? (
+          breadcrumb.map((c, i) => {
+            const isLast = i === breadcrumb.length - 1;
+            return (
+              <span
+                key={`${i}-${c.name}`}
+                className="flex min-w-0 items-center gap-2.5"
+              >
+                {!isLast && c.href ? (
+                  <a className="btn ghost sm" href={c.href}>
+                    {c.name}
+                  </a>
+                ) : (
+                  <span className="serif overflow-hidden text-[18px] text-ellipsis whitespace-nowrap text-ink">
+                    {c.name}
+                  </span>
+                )}
+                {!isLast && <span className="text-ink-4">/</span>}
+              </span>
+            );
+          })
         ) : (
           <span className="serif text-[20px] text-ink">{title ?? ""}</span>
         )}
