@@ -111,6 +111,30 @@ All native input props pass through.
 
 Small inline loading indicator. Respects `prefers-reduced-motion`.
 
+### `<CheckboxRow>`
+
+```tsx
+<CheckboxRow
+  checked={selected.has(g.id)}
+  onChange={() => toggle(g.id)}
+  label={g.name}
+/>
+
+<CheckboxRow
+  type="radio"
+  checked={parentId === null}
+  onChange={() => choose(null)}
+  label={<span className="italic text-ink-2">Sin padre</span>}
+/>
+
+<CheckboxRow checked={favOnly} onChange={…} label="Sólo favoritas" pending={saving} />
+```
+
+The `.row-check` pattern — a clickable label wrapping a `checkbox`/`radio`
+input. `label` accepts any node so callers can layer styling (italic,
+ellipsis, danger color). `pending` fades the row at 0.6 opacity for
+"in-flight" state. All native input props pass through.
+
 ### `<ActionMenu>`
 
 ```tsx

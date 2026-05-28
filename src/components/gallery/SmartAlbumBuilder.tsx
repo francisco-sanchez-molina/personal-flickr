@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { Icons } from "../icons";
 import Button from "../ui/Button";
+import CheckboxRow from "../ui/CheckboxRow";
 import {
   Dialog,
   DialogBody,
@@ -308,22 +309,16 @@ export default function SmartAlbumBuilder({
             </Row>
 
             <div className="grid gap-1.5">
-              <label className="row-check cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isFavorite}
-                  onChange={(e) => set("isFavorite", e.target.checked)}
-                />
-                <span className="flex-1">Sólo favoritas</span>
-              </label>
-              <label className="row-check cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.withoutGallery}
-                  onChange={(e) => set("withoutGallery", e.target.checked)}
-                />
-                <span className="flex-1">Sin galería</span>
-              </label>
+              <CheckboxRow
+                checked={form.isFavorite}
+                onChange={(e) => set("isFavorite", e.target.checked)}
+                label="Sólo favoritas"
+              />
+              <CheckboxRow
+                checked={form.withoutGallery}
+                onChange={(e) => set("withoutGallery", e.target.checked)}
+                label="Sin galería"
+              />
             </div>
 
             <ErrorText message={error} />

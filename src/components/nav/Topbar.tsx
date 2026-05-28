@@ -50,16 +50,6 @@ export default function Topbar({ title, breadcrumb, current, username }: Props) 
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const q = String(fd.get("q") ?? "").trim();
-    if (!q) return;
-    const u = new URL(window.location.href);
-    u.searchParams.set("q", q);
-    window.location.assign(u.toString());
-  };
-
   const openUploader = () =>
     window.dispatchEvent(new CustomEvent("uploader:open"));
 
@@ -92,7 +82,18 @@ export default function Topbar({ title, breadcrumb, current, username }: Props) 
         )}
       </div>
 
-      <form className="search" onSubmit={onSubmit}>
+      <form
+        className="search"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const q = String(fd.get("q") ?? "").trim();
+          if (!q) return;
+          const u = new URL(window.location.href);
+          u.searchParams.set("q", q);
+          window.location.assign(u.toString());
+        }}
+      >
         <span className="inline-flex text-ink-3">
           <Icons.Search size={16} />
         </span>

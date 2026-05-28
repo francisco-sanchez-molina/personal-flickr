@@ -3,6 +3,7 @@ import type { Photo } from "~/lib/db";
 import { Icons } from "../icons";
 import ActionMenu from "../ui/ActionMenu";
 import Button from "../ui/Button";
+import CheckboxRow from "../ui/CheckboxRow";
 import { useConfirm } from "../ui/ConfirmDialog";
 import {
   Dialog,
@@ -473,34 +474,35 @@ function MoveGalleryDialog({
             <p className="m-0 px-1 py-4 text-[13px] text-ink-3">cargando…</p>
           ) : (
             <div className="-mx-1 max-h-[280px] overflow-y-auto">
-              <label className="row-check cursor-pointer">
-                <input
-                  type="radio"
-                  checked={currentParentId === null}
-                  onChange={() => choose(null)}
-                  disabled={saving}
-                />
-                <span className="flex-1 italic text-ink-2">
-                  Sin padre (top-level)
-                </span>
-              </label>
+              <CheckboxRow
+                type="radio"
+                checked={currentParentId === null}
+                onChange={() => choose(null)}
+                disabled={saving}
+                label={
+                  <span className="italic text-ink-2">
+                    Sin padre (top-level)
+                  </span>
+                }
+              />
               {options.length === 0 ? (
                 <p className="m-0 px-1 py-2 text-[12px] text-ink-3">
                   No hay otras galerías top-level.
                 </p>
               ) : (
                 options.map((o) => (
-                  <label key={o.id} className="row-check cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={currentParentId === o.id}
-                      onChange={() => choose(o.id)}
-                      disabled={saving}
-                    />
-                    <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                      {o.name}
-                    </span>
-                  </label>
+                  <CheckboxRow
+                    key={o.id}
+                    type="radio"
+                    checked={currentParentId === o.id}
+                    onChange={() => choose(o.id)}
+                    disabled={saving}
+                    label={
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                        {o.name}
+                      </span>
+                    }
+                  />
                 ))
               )}
             </div>

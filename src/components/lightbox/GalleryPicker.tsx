@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { cn } from "~/lib/cn";
 import NewGalleryForm from "../gallery/NewGalleryForm";
+import CheckboxRow from "../ui/CheckboxRow";
 import ErrorText from "../ui/ErrorText";
 import {
   Popover,
@@ -136,19 +136,17 @@ export default function GalleryPicker({
             </p>
           ) : (
             all.map((g) => (
-              <label
+              <CheckboxRow
                 key={g.id}
-                className={cn("row-check", pendingId === g.id && "pending")}
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.has(g.id)}
-                  onChange={() => toggle(g.id)}
-                />
-                <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                  {g.name}
-                </span>
-              </label>
+                pending={pendingId === g.id}
+                checked={selected.has(g.id)}
+                onChange={() => toggle(g.id)}
+                label={
+                  <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                    {g.name}
+                  </span>
+                }
+              />
             ))
           )}
         </div>

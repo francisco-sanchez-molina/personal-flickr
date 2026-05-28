@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import NewGalleryForm from "../gallery/NewGalleryForm";
 import { Icons } from "../icons";
 import Button from "../ui/Button";
+import CheckboxRow from "../ui/CheckboxRow";
 import ErrorText from "../ui/ErrorText";
 import {
   Dialog,
@@ -205,14 +206,12 @@ function BulkGalleryPicker({
               </p>
             ) : (
               all.map((g) => (
-                <label key={g.id} className="row-check">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(g.id)}
-                    onChange={() => toggle(g.id)}
-                  />
-                  <span className="flex-1">{g.name}</span>
-                </label>
+                <CheckboxRow
+                  key={g.id}
+                  checked={selected.has(g.id)}
+                  onChange={() => toggle(g.id)}
+                  label={g.name}
+                />
               ))
             )}
           </div>
