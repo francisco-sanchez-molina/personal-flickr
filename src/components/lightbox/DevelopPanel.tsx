@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { Photo } from "~/lib/db";
 import { cn } from "~/lib/cn";
 import { Icons } from "../icons";
 import ErrorText from "../ui/ErrorText";
@@ -98,7 +99,13 @@ interface Props {
   photoId: number;
   baseUrl: string;
   initial: DevelopParams;
-  onSaved: (newDevelopedAt: number, params: DevelopParams | null) => void;
+  /**
+   * Fired after the server has re-encoded the photo. Receives the full
+   * updated row (including potentially-flipped width/height when the
+   * develop includes a 90°/270° rotation), so the parent can patch its
+   * cached photo state without losing any fields.
+   */
+  onSaved: (updated: Photo) => void;
   onClose: () => void;
 }
 
@@ -153,7 +160,7 @@ export default function DevelopPanel({
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
-      onSaved(body.photo.developed_at, isDefault ? null : params);
+      onSaved(body.photo as Photo);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

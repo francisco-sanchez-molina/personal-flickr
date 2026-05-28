@@ -11,7 +11,7 @@
  * Server-rendered API calls (favorite, delete, gallery membership) live here
  * because they need to roll back optimistic state if the network fails.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Photo } from "~/lib/db";
 import BulkActionBar from "../bulk/BulkActionBar";
 import Lightbox from "../lightbox/Lightbox";
@@ -96,29 +96,48 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
         .join(","),
     [photos],
   );
+  // Keep a live reference to the photos array so the polling tick can
+  // skip ids that have been deleted (or already finished from elsewhere)
+  // without the effect having to tear down & rebuild on every photos
+  // change — which would otherwise happen as soon as we patch a row.
+  const photosRef = useRef(photos);
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
+
   useEffect(() => {
     if (!pendingIdsKey) return;
     const ids = pendingIdsKey.split(",").map(Number);
-    let cancelled = false;
+    // AbortController cancels any in-flight fetch when the effect tears
+    // down (photo deleted, lightbox unmounted, hot-reload). Without this,
+    // a slow /api/photos/:id round-trip could resolve after teardown and
+    // still try to call setPhotos on a stale component.
+    const abort = new AbortController();
     const tick = async () => {
       for (const id of ids) {
-        if (cancelled) return;
+        if (abort.signal.aborted) return;
+        // Skip ids that no longer exist in state (deleted) or that have
+        // already left processing (finished via another mechanism). This
+        // is what makes the deleted-while-processing flow clean — no
+        // wasted 404 calls.
+        const current = photosRef.current.find((p) => p.id === id);
+        if (!current || current.processing_status !== "processing") continue;
         try {
-          const res = await fetch(`/api/photos/${id}`);
+          const res = await fetch(`/api/photos/${id}`, { signal: abort.signal });
           if (!res.ok) continue;
           const body = (await res.json()) as { photo: Photo | null };
-          if (!body.photo || cancelled) continue;
+          if (!body.photo) continue;
           setPhotos((arr) =>
             arr.map((x) => (x.id === id ? body.photo! : x)),
           );
         } catch {
-          /* network blip; try again next tick */
+          /* network blip or aborted; try again next tick */
         }
       }
     };
     const t = setInterval(tick, 2500);
     return () => {
-      cancelled = true;
+      abort.abort();
       clearInterval(t);
     };
   }, [pendingIdsKey]);
@@ -324,12 +343,10 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
           onClose={() => setActive(null)}
           onDelete={() => remove(photos[active].id)}
           onToggleFavorite={() => toggleFavorite(photos[active].id)}
-          onDeveloped={(developedAt, paramsJson) =>
-            updatePhoto(photos[active].id, {
-              developed_at: developedAt,
-              develop_params: paramsJson,
-            })
-          }
+          // Develop / rotate may flip width/height (90° / 270°) — pass the
+          // full updated row so dimensions, develop_params and developed_at
+          // all stay in sync.
+          onPhotoUpdated={(updated) => updatePhoto(updated.id, updated)}
         />
       )}
 

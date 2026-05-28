@@ -41,7 +41,12 @@ interface Props {
   onClose: () => void;
   onDelete: () => void;
   onToggleFavorite: () => void;
-  onDeveloped: (developedAt: number, developParamsJson: string | null) => void;
+  /**
+   * Fires whenever the photo row changes server-side (develop, rotation,
+   * any other re-encode). Receives the full row so width/height/develop
+   * params/developed_at can all stay consistent in the parent.
+   */
+  onPhotoUpdated: (photo: Photo) => void;
 }
 
 export default function Lightbox({
@@ -51,7 +56,7 @@ export default function Lightbox({
   onClose,
   onDelete,
   onToggleFavorite,
-  onDeveloped,
+  onPhotoUpdated,
 }: Props) {
   const photo = photos[index];
   const isFav = photo.is_favorite === 1;
@@ -118,6 +123,44 @@ export default function Lightbox({
     transformRef.current?.resetTransform(0);
     setScale(1);
   }, [photo.id]);
+
+  // Standalone rotate — surfaces the most-used Develop action (90°
+   //  steps) outside the panel for photos that have a preserved base
+   //  (RAWs). Sends the current params + new rotate value through the
+   //  same /develop endpoint that DevelopPanel uses, then forwards the
+   //  fresh row to the parent. Disabled while a request is in flight to
+   //  avoid stomping on a previous response.
+  const [rotating, setRotating] = useState(false);
+  const rotate = useCallback(
+    async (delta: 90 | -90) => {
+      if (rotating || photo.has_base !== 1) return;
+      setRotating(true);
+      try {
+        const current = parseDevelopParams(photo.develop_params);
+        const nextRotate = ((((current.rotate + delta) % 360) + 360) % 360) as
+          | 0
+          | 90
+          | 180
+          | 270;
+        const res = await fetch(`/api/photos/${photo.id}/develop`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            params: { ...current, rotate: nextRotate },
+          }),
+        });
+        const body = await res.json();
+        if (res.ok && body.photo) {
+          onPhotoUpdated(body.photo as Photo);
+        }
+      } catch {
+        /* swallow — user can retry */
+      } finally {
+        setRotating(false);
+      }
+    },
+    [photo.id, photo.develop_params, photo.has_base, onPhotoUpdated, rotating],
+  );
 
   // F = fullscreen · I = info. Skip when typing in inputs.
   useEffect(() => {
@@ -196,9 +239,29 @@ export default function Lightbox({
             {isFav ? <Icons.StarFill size={15} /> : <Icons.Star size={15} />}
           </button>
           {photo.has_base === 1 && (
-            <button className="btn" onClick={() => setDevelopOpen(true)}>
-              <Icons.Sliders size={14} /> Revelar
-            </button>
+            <>
+              <button
+                className="iconbtn"
+                onClick={() => rotate(-90)}
+                disabled={rotating}
+                aria-label="Rotar 90° a la izquierda"
+                title="Rotar 90° a la izquierda"
+              >
+                <Icons.RotL size={15} />
+              </button>
+              <button
+                className="iconbtn"
+                onClick={() => rotate(90)}
+                disabled={rotating}
+                aria-label="Rotar 90° a la derecha"
+                title="Rotar 90° a la derecha"
+              >
+                <Icons.RotR size={15} />
+              </button>
+              <button className="btn" onClick={() => setDevelopOpen(true)}>
+                <Icons.Sliders size={14} /> Revelar
+              </button>
+            </>
           )}
           <GalleryPicker photoId={photo.id}>
             <button className="btn">
@@ -410,8 +473,8 @@ export default function Lightbox({
           photoId={photo.id}
           baseUrl={baseUrl(photo)}
           initial={parseDevelopParams(photo.develop_params)}
-          onSaved={(developedAt, params) => {
-            onDeveloped(developedAt, params ? JSON.stringify(params) : null);
+          onSaved={(updated) => {
+            onPhotoUpdated(updated);
             setDevelopOpen(false);
           }}
           onClose={() => setDevelopOpen(false)}

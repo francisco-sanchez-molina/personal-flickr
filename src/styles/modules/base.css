@@ -65,3 +65,19 @@ a {
   color: var(--ink-3);
 }
 
+/* Respect `prefers-reduced-motion` globally — disable animations,
+   transitions and the lightbox swipe-back-after-commit beat for users
+   who've asked the OS to reduce motion (accessibility, also helps users
+   on low-end devices). We still allow `transition: none` to override,
+   so we don't break interaction states that depend on instant snaps. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

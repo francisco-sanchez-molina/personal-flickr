@@ -1,6 +1,56 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { MOODS, useThemePreferences } from "~/lib/theme";
 import { Icons } from "../icons";
+
+/**
+ * Pretty-print byte counts. Stops at GB because anything bigger doesn't
+ * fit cleanly in the rail chip — at TB scale you're probably running into
+ * other issues than label width.
+ */
+function fmtBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(0)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(0)} MB`;
+  return `${(mb / 1024).toFixed(1)} GB`;
+}
+
+interface DiskUsage {
+  totalBytes: number;
+  photos: number;
+  thumbs: number;
+  bases: number;
+}
+
+/**
+ * Polls the disk-usage endpoint every 60 s once mounted. The endpoint itself
+ * memoizes for 60 s, so this is mostly a "stay fresh while the tab is open"
+ * heartbeat — the actual filesystem walk happens once per minute server-side.
+ */
+function useDiskUsage(): DiskUsage | null {
+  const [usage, setUsage] = useState<DiskUsage | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const fetchOnce = async () => {
+      try {
+        const res = await fetch("/api/disk-usage");
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as DiskUsage;
+        if (!cancelled) setUsage(body);
+      } catch {
+        /* network blip — try next tick */
+      }
+    };
+    fetchOnce();
+    const t = setInterval(fetchOnce, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, []);
+  return usage;
+}
 
 interface Props {
   /** Active nav item. Maps to URL pathname. */
@@ -17,6 +67,7 @@ interface Props {
 export default function Rail({ current }: Props) {
   const { mood, theme, setMood, toggleTheme } = useThemePreferences();
   const [moodOpen, setMoodOpen] = useState(false);
+  const disk = useDiskUsage();
 
   const items: { id: Props["current"]; icon: ReactNode; label: string; href: string }[] = [
     { id: "home", icon: <Icons.Home />, label: "Inicio", href: "/" },
@@ -92,6 +143,23 @@ export default function Rail({ current }: Props) {
           {theme === "dark" ? <Icons.Sun /> : <Icons.Moon />}
           <span className="rail-tip">{theme === "dark" ? "Modo claro" : "Modo oscuro"}</span>
         </button>
+
+        {disk && (
+          <div
+            className="rail-btn"
+            // Decorative: just a static label, not an action. Title surfaces
+            // the breakdown without taking sidebar real estate.
+            title={`Fotos ${fmtBytes(disk.photos)} · Bases ${fmtBytes(disk.bases)} · Thumbs ${fmtBytes(disk.thumbs)}`}
+            aria-label={`Espacio en disco: ${fmtBytes(disk.totalBytes)}`}
+          >
+            <span className="font-mono text-[10px] tracking-[.05em] leading-none text-ink-3">
+              {fmtBytes(disk.totalBytes)}
+            </span>
+            <span className="rail-tip">
+              Disco · {fmtBytes(disk.totalBytes)}
+            </span>
+          </div>
+        )}
       </div>
     </aside>
   );

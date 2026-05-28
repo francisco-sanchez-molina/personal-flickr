@@ -15,6 +15,16 @@
  */
 import { useRef, useState } from "react";
 
+/**
+ * Read the user's reduced-motion preference once at call time. We don't
+ * subscribe to the media query — swipe is a transient gesture and reading
+ * it per-commit is enough; this avoids stateful plumbing for a 1-bit value.
+ */
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
 interface Args {
   /** True when the photo is zoomed in (>1×). Swipe is disabled then. */
   isZoomed: boolean;
@@ -82,6 +92,18 @@ export function useSwipeNav({ isZoomed, count, index, onIndex }: Args): SwipeNav
   };
 
   const commitSwipe = (direction: 1 | -1) => {
+    // For users who prefer reduced motion, skip the slide-off animation
+    // and just jump to the next photo. The carousel feel is sacrificed
+    // for accessibility — what matters is that nav still works.
+    if (prefersReducedMotion()) {
+      setDragX(0);
+      if (direction < 0) {
+        onIndex((index + 1) % count);
+      } else {
+        onIndex((index - 1 + count) % count);
+      }
+      return;
+    }
     const width = window.innerWidth;
     setDragX(direction * width);
     window.setTimeout(() => {

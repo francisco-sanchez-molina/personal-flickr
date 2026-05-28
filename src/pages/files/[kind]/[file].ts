@@ -71,12 +71,15 @@ export const GET: APIRoute = async ({ params, request }) => {
   const mime =
     target.fixedMime ?? EXT_MIME[ext] ?? "application/octet-stream";
 
-  // `photo`/`thumb` may change content (re-develop) under the same filename
-  // → cache only on the client with revalidation. `base` is immutable.
-  const cacheControl =
-    kind === "base"
-      ? "private, max-age=31536000, immutable"
-      : "private, max-age=0, must-revalidate";
+  // Cache strategy:
+  //   - `base` is immutable on disk by definition (the preserved RAW preview).
+  //   - `photo`/`thumb` can change under the same filename when the user
+  //     re-develops, but the URL always carries `?v=developed_at` (see
+  //     lib/photo.ts) — so for any one URL the bytes are immutable too.
+  // That means we can serve everything with `immutable, max-age=1y` and rely
+  // on the cache-buster query string to force a refresh. Saves enormous
+  // amounts of bandwidth (no revalidation roundtrip per thumbnail).
+  const cacheControl = "private, max-age=31536000, immutable";
 
   // Range support — required for <video> scrubbing/seek. Browsers issue a
   // `Range: bytes=0-` on `<video>` element load to opt in to ranged delivery.

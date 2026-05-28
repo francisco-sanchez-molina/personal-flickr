@@ -197,6 +197,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 0. EXIF — best-effort. If the file has none, we get all-nulls.
     const exif = await extractExif(buf).catch(() => ({ ...EMPTY_EXIF }));
+    // Fallback: if the file carries no EXIF date but the browser exposed a
+    // lastModified (cameras + iOS Photos preserve the capture time as the
+    // file's mtime), use that instead of leaving the column null. Better
+    // than "missing" — and a single-photo wrong fallback is recoverable.
+    const takenAt =
+      exif.taken_at ?? (file.lastModified > 0 ? file.lastModified : null);
 
     // 1. Extract the base JPEG (camera preview for RAW; original bytes otherwise)
     const base = await extractBaseJpeg(tmpFile, ext);
@@ -234,7 +240,7 @@ export const POST: APIRoute = async ({ request }) => {
       shutter: exif.shutter,
       iso: exif.iso,
       focal: exif.focal,
-      taken_at: exif.taken_at,
+      taken_at: takenAt,
       gps_lat: exif.gps_lat,
       gps_lng: exif.gps_lng,
       // Video support: this endpoint only handles still photos today.
