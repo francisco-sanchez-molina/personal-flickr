@@ -124,6 +124,24 @@ export default function Lightbox({
     setScale(1);
   }, [photo.id]);
 
+  // Lazy content-hash backfill: legacy photos (uploaded before the
+  // content_hash column existed) have a NULL hash. On open, fire a
+  // background request to hash whatever's currently on disk and persist
+  // it. Idempotent server-side (no-op if a hash already exists), and the
+  // result doesn't block anything — failures are silent.
+  useEffect(() => {
+    if (photo.content_hash) return;
+    if (photo.processing_status !== "ready") return;
+    const ctrl = new AbortController();
+    fetch(`/api/photos/${photo.id}/backfill-hash`, {
+      method: "POST",
+      signal: ctrl.signal,
+    }).catch(() => {
+      /* user navigated away or network blip — nothing to recover */
+    });
+    return () => ctrl.abort();
+  }, [photo.id, photo.content_hash, photo.processing_status]);
+
   // Standalone rotate — surfaces the most-used Develop action (90°
    //  steps) outside the panel for photos that have a preserved base
    //  (RAWs). Sends the current params + new rotate value through the

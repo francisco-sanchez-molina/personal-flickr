@@ -78,6 +78,15 @@ db.exec(
 db.exec(
   `UPDATE photos SET processing_status = 'failed' WHERE processing_status = 'processing'`,
 );
+
+// Content-hash for upload-time deduplication. SHA-256 of the uploaded bytes
+// (before any processing). NULL on rows from before this column existed;
+// the dedup check skips NULLs so legacy photos don't false-positive.
+addColumnIfMissing("photos", "content_hash", "TEXT");
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_photos_content_hash ON photos(content_hash)
+   WHERE content_hash IS NOT NULL`,
+);
 // Backfill developed_at = uploaded_at for old rows
 db.exec(
   `UPDATE photos SET developed_at = uploaded_at WHERE developed_at = 0`,
@@ -159,6 +168,8 @@ export interface Photo {
   duration_ms: number | null;
   /** 'ready' | 'processing' | 'failed'. Always 'ready' for photos. */
   processing_status: "ready" | "processing" | "failed";
+  /** SHA-256 of the original uploaded bytes. NULL for legacy rows. */
+  content_hash: string | null;
 }
 
 const stmts = {
@@ -172,10 +183,10 @@ const stmts = {
        (name, mime, width, height, size_bytes, uploaded_at,
         developed_at, develop_params, has_base, original_ext,
         camera, lens, fstop, shutter, iso, focal, taken_at, gps_lat, gps_lng,
-        kind, duration_ms, processing_status)
+        kind, duration_ms, processing_status, content_hash)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?)`,
+             ?, ?, ?, ?)`,
   ),
   updateForReplace: db.prepare(
     `UPDATE photos
@@ -183,8 +194,20 @@ const stmts = {
            developed_at = ?, develop_params = ?, has_base = ?, original_ext = ?,
            camera = ?, lens = ?, fstop = ?, shutter = ?, iso = ?, focal = ?,
            taken_at = ?, gps_lat = ?, gps_lng = ?,
-           kind = ?, duration_ms = ?, processing_status = ?
+           kind = ?, duration_ms = ?, processing_status = ?, content_hash = ?
      WHERE name = ?`,
+  ),
+  // Lookup by SHA-256 — used for upload-time dedup. NULL hashes never
+  // match (legacy rows are excluded from the partial index).
+  byHash: db.prepare<[string], Photo>(
+    `SELECT * FROM photos WHERE content_hash = ? LIMIT 1`,
+  ),
+  // Lazy-backfill the content_hash for a legacy row. The WHERE clause
+  // makes this a no-op if a hash already exists, so concurrent backfills
+  // never clobber each other and develop-time hash updates aren't
+  // overwritten by a stale read.
+  setContentHashIfMissing: db.prepare(
+    `UPDATE photos SET content_hash = ? WHERE id = ? AND content_hash IS NULL`,
   ),
   // Mark a video row as ready once the background transcode finishes (also
   // refreshes size_bytes + developed_at so the client invalidates its cached
@@ -259,11 +282,16 @@ export interface PhotoUpsert {
   kind: "photo" | "video";
   duration_ms: number | null;
   processing_status: "ready" | "processing" | "failed";
+  content_hash: string | null;
 }
 
 export const photoQueries = {
   byName: (name: string) => stmts.byName.get(name) ?? null,
   byId: (id: number) => stmts.byId.get(id) ?? null,
+  byHash: (hash: string) => stmts.byHash.get(hash) ?? null,
+  setContentHashIfMissing: (id: number, hash: string) => {
+    stmts.setContentHashIfMissing.run(hash, id);
+  },
   list: () => stmts.list.all(),
   insert: (p: PhotoUpsert) => {
     const r = stmts.insert.run(
@@ -289,6 +317,7 @@ export const photoQueries = {
       p.kind,
       p.duration_ms,
       p.processing_status,
+      p.content_hash,
     );
     return Number(r.lastInsertRowid);
   },
@@ -315,6 +344,7 @@ export const photoQueries = {
       p.kind,
       p.duration_ms,
       p.processing_status,
+      p.content_hash,
       p.name,
     );
   },

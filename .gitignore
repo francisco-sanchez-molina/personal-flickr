@@ -26,3 +26,6 @@ data/
 .vscode/
 .idea/
 .zed/
+
+# Local agent / tooling
+.claude/

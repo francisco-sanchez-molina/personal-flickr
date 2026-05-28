@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -59,6 +60,11 @@ export const POST: APIRoute = async ({ request }) => {
   const decision = String(form.get("decision") ?? "create") as Decision;
   const finalNameOverride = form.get("finalName");
   const developParams = parseDevelopParams(form.get("developParams"));
+  // When the user has been shown the duplicate-content prompt and chose
+  // "Subir igualmente", the client resends with this flag — we skip the
+  // hash check in that case.
+  const acknowledgeDuplicate =
+    String(form.get("acknowledgeDuplicate") ?? "") === "true";
 
   if (!(file instanceof File)) {
     return new Response(JSON.stringify({ error: "file required" }), {
@@ -95,6 +101,25 @@ export const POST: APIRoute = async ({ request }) => {
   );
   const buf = Buffer.from(await file.arrayBuffer());
   await fs.writeFile(tmpFile, buf);
+
+  // Content-hash dedup. SHA-256 of the bytes the user actually sent — not
+  // the processed JPEG, so re-uploading the same RAW twice matches even
+  // after develop. Skipped on `replace` (the user explicitly wants to
+  // overwrite that name) and when the user has acknowledged the dup.
+  const contentHash = crypto.createHash("sha256").update(buf).digest("hex");
+  if (decision === "create" && !acknowledgeDuplicate) {
+    const existing = photoQueries.byHash(contentHash);
+    if (existing) {
+      await fs.unlink(tmpFile).catch(() => {});
+      return Response.json(
+        {
+          error: "duplicate_content",
+          duplicateOf: existing.name,
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   // The photo branch always deletes tmpFile in `finally`. The video branch
   // moves the tmp file into a pending- location for the background job, so
@@ -149,6 +174,7 @@ export const POST: APIRoute = async ({ request }) => {
         kind: "video" as const,
         duration_ms: vmeta.durationMs,
         processing_status: "processing" as const,
+        content_hash: contentHash,
       };
       if (collides && decision === "replace") {
         photoQueries.upsertReplace(meta);
@@ -249,6 +275,7 @@ export const POST: APIRoute = async ({ request }) => {
       // Photos are processed inline (sharp is fast enough), so they're
       // already "ready" by the time we insert the row.
       processing_status: "ready" as const,
+      content_hash: contentHash,
     };
     if (collides && decision === "replace") {
       photoQueries.upsertReplace(meta);
