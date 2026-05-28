@@ -86,10 +86,22 @@ function packIntoRows(
     }
   }
 
-  // Trailing partial row — don't stretch it to fill width.
+  // Trailing partial row. Keep it at target height *unless* its photos at
+  // that height would overflow the container (e.g. a single panorama with
+  // aspect 3:1 → 540px wide at 180px target → blows past a 360px phone
+  // viewport). In that case clamp the height the same way a full row
+  // does so the row never overflows horizontally. This is the fix for
+  // the mobile regression where the last row pushed a horizontal scroll.
   if (current.length > 0) {
-    const widths = current.map((q) => aspectOf(q) * targetHeight);
-    rows.push({ photos: current, widths, height: targetHeight });
+    const naiveWidth = aspectSum * targetHeight + (current.length - 1) * gap;
+    if (naiveWidth > containerWidth) {
+      const h = (containerWidth - (current.length - 1) * gap) / aspectSum;
+      const widths = current.map((q) => aspectOf(q) * h);
+      rows.push({ photos: current, widths, height: h });
+    } else {
+      const widths = current.map((q) => aspectOf(q) * targetHeight);
+      rows.push({ photos: current, widths, height: targetHeight });
+    }
   }
 
   return rows;

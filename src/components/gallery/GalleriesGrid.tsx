@@ -42,7 +42,11 @@ export default function GalleriesGrid({
           <div className="h-eyebrow mb-2">Colecciones temáticas</div>
           <h2>Galerías</h2>
         </div>
-        <div className="row min-w-[260px] items-center gap-2">
+        {/* `flex-wrap` so on narrow viewports (mobile) the count-chip and
+            the inline "+ Nueva galería" button drop to a second line
+            instead of forcing horizontal scroll. `min-w-0` lets each child
+            shrink below its natural width when needed. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="count-chip">
             {galleries.length} galerías · {orphanCount} sin clasificar
           </span>

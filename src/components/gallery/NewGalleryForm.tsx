@@ -98,9 +98,15 @@ export default function NewGalleryForm({
   };
 
   if (!editing) {
+    // Auto-width by default — sized to its content. The bulk-action and
+    // gallery-picker call sites used to want `w-full` (they sit alone
+    // inside a column-flow dialog), but in a row context (`GalleriesGrid`
+    // header) that 100% fights with siblings for space and triggers
+    // horizontal overflow on phones. Setting auto-width here and letting
+    // the column-flow callers stretch the parent container is cleaner.
     return (
       <button
-        className="btn ghost sm w-full justify-center border-dashed border-line-2"
+        className="btn ghost sm border-dashed border-line-2"
         onClick={() => setEditing(true)}
         type="button"
       >
