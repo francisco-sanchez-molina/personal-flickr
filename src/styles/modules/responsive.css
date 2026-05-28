@@ -121,6 +121,11 @@
   .lb-actions .btn {
     display: none;
   }
+  /* Surface the "···" overflow trigger now that the inline buttons
+     above are hidden — its menu items mirror those buttons. */
+  .lb-actions-more {
+    display: inline-grid;
+  }
   .lb-actions {
     gap: 4px;
   }
@@ -137,15 +142,15 @@
   .lb-nav.next {
     right: 8px;
   }
-  /* Info panel hides on mobile (we don't have a bottom-sheet for it yet),
-     but the Develop tools stay as a bottom sheet. */
-  .lb-side:not(.edit-side) {
-    display: none;
-  }
+  /* Both side panels — info and Develop tools — drop to a bottom sheet
+     overlaid on the canvas. The grid column on .lb-stage collapses to
+     1fr so the photo gets the full viewport width, and the panel
+     floats above it taking up to 55vh of vertical space. */
+  .lb-stage.with-info,
   .lb-stage.with-edit {
     grid-template-columns: 1fr;
   }
-  .lb-side.edit-side {
+  .lb-side {
     position: absolute;
     left: 0;
     right: 0;
@@ -160,7 +165,7 @@
     backdrop-filter: blur(20px);
     z-index: 3;
   }
-  .lb-side.edit-side::before {
+  .lb-side::before {
     content: "";
     display: block;
     width: 36px;

@@ -76,6 +76,14 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* Overflow "···" trigger — hidden on desktop where the inline action
+   buttons handle everything. The responsive media query at
+   styles/modules/responsive.css flips it on once the .lb-actions .btn
+   block goes display:none. */
+.lb-actions-more {
+  display: none;
+}
+
 .lb-stage {
   position: relative;
   display: grid;

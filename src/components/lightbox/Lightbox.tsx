@@ -15,6 +15,7 @@ import { cn } from "~/lib/cn";
 import { baseUrl, fmtDate, fmtDuration, fmtSize, isVideo, photoUrl, thumbUrl } from "~/lib/photo";
 import { Icons } from "../icons";
 import ShareDialog from "../share/ShareDialog";
+import ActionMenu, { type ActionItem } from "../ui/ActionMenu";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
 import { DEFAULT_DEVELOP, type DevelopParams } from "./develop-params";
@@ -306,6 +307,64 @@ export default function Lightbox({
           <Button variant="danger" onClick={onDelete}>
             <Icons.Trash size={14} /> Eliminar
           </Button>
+          {/* Overflow menu — only visible on mobile (CSS-driven via
+              the `lb-actions-more` className). Surfaces the same
+              actions as the inline buttons above so the user doesn't
+              lose access to Compartir / Descargar / Eliminar / …
+              when those are display:none on narrow viewports. */}
+          <ActionMenu
+            title="Acciones"
+            width={240}
+            trigger={
+              <IconButton
+                className="lb-actions-more"
+                aria-label="Más acciones"
+                title="Más acciones"
+              >
+                <Icons.More size={15} />
+              </IconButton>
+            }
+            items={[
+              ...(photo.has_base === 1
+                ? [
+                    {
+                      label: "Revelar",
+                      icon: <Icons.Sliders size={13} />,
+                      onSelect: () => setDevelopOpen(true),
+                    } satisfies ActionItem,
+                  ]
+                : []),
+              ...(photo.processing_status === "ready"
+                ? [
+                    {
+                      label: "Descargar",
+                      icon: <Icons.Download size={13} />,
+                      onSelect: () => {
+                        // Programmatic download — the inline button uses
+                        // an <a download>; this fakes the same with a
+                        // throwaway anchor so the menu can fire it from
+                        // an onSelect handler.
+                        const a = document.createElement("a");
+                        a.href = photoUrl(photo);
+                        a.download = photo.name;
+                        a.click();
+                      },
+                    } satisfies ActionItem,
+                  ]
+                : []),
+              {
+                label: "Compartir",
+                icon: <Icons.Share size={13} />,
+                onSelect: () => setShareOpen(true),
+              },
+              {
+                label: "Eliminar",
+                icon: <Icons.Trash size={13} />,
+                danger: true,
+                onSelect: onDelete,
+              },
+            ]}
+          />
           <IconButton
             active={showInfo}
             onClick={() => setShowInfo((v) => !v)}
