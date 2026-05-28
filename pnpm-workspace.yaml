@@ -1,0 +1,20 @@
+# pnpm 11+ moved repo-level settings out of `package.json#pnpm` (which is
+# now silently ignored) and into this file. Even for single-package
+# repos this is the supported home for things like onlyBuiltDependencies.
+# https://pnpm.io/settings#onlybuiltdependencies
+
+# Native modules whose install-time build script is allowed to run.
+# Anything not listed here gets its postinstall skipped — pnpm 10+ opts
+# out by default as a supply-chain hardening measure.
+onlyBuiltDependencies:
+  - better-sqlite3
+  - esbuild
+  - sharp
+
+# Pin transitive versions that the Coolify build host's
+# `minimumReleaseAge` policy (~24h) rejects. The latest patches are
+# bleeding-edge; we hold a slightly older release until the policy
+# clears them naturally.
+overrides:
+  lru-cache: 11.5.0
+  electron-to-chromium: 1.5.361
