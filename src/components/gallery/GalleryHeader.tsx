@@ -13,6 +13,13 @@ import {
   DialogTitle,
 } from "../ui/Dialog";
 import ErrorText from "../ui/ErrorText";
+import {
+  Popover,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "../ui/Popover";
 
 interface Gallery {
   id: number;
@@ -98,20 +105,96 @@ export default function GalleryHeader({
 
   if (!inline) return null;
 
+  // Four actions for a gallery: Renombrar / Portada / Mover / Eliminar.
+  // On desktop they fit inline as a button row inside the hero. On
+  // mobile the hero is ~360px wide and four buttons don't fit, so we
+  // collapse them into a single "···" iconbtn that opens a popover
+  // menu with the same items. The popover trigger and the inline row
+  // are both rendered; CSS shows one or the other via the `md:` (768px)
+  // breakpoint — keeps the React state (which dialog is open) shared.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
+
   return (
     <>
-      <button className="btn primary" onClick={() => setEditing(true)}>
-        <Icons.Sliders size={14} /> Renombrar
-      </button>
-      <button className="btn" onClick={() => setCoverOpen(true)}>
-        <Icons.Photos size={14} /> Portada
-      </button>
-      <button className="btn" onClick={() => setMoveOpen(true)}>
-        <Icons.Folder size={14} /> Mover
-      </button>
-      <button className="btn" onClick={remove} disabled={busy}>
-        <Icons.Trash size={14} /> Eliminar
-      </button>
+      {/* Desktop: inline row */}
+      <div className="hidden items-center gap-1.5 md:flex">
+        <button className="btn primary" onClick={() => setEditing(true)}>
+          <Icons.Sliders size={14} /> Renombrar
+        </button>
+        <button className="btn" onClick={() => setCoverOpen(true)}>
+          <Icons.Photos size={14} /> Portada
+        </button>
+        <button className="btn" onClick={() => setMoveOpen(true)}>
+          <Icons.Folder size={14} /> Mover
+        </button>
+        <button className="btn" onClick={remove} disabled={busy}>
+          <Icons.Trash size={14} /> Eliminar
+        </button>
+      </div>
+
+      {/* Mobile: single "···" overflow menu */}
+      <div className="md:hidden">
+        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className="btn primary"
+              aria-label="Acciones de la galería"
+              title="Acciones"
+            >
+              <Icons.More size={15} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="end" className="w-[220px]">
+            <PopoverHeader>
+              <PopoverTitle>Acciones</PopoverTitle>
+            </PopoverHeader>
+            <div className="grid gap-1 py-1">
+              <button
+                className="row-check cursor-pointer text-left"
+                onClick={() => {
+                  closeMenu();
+                  setEditing(true);
+                }}
+              >
+                <Icons.Sliders size={13} />
+                <span className="flex-1">Renombrar</span>
+              </button>
+              <button
+                className="row-check cursor-pointer text-left"
+                onClick={() => {
+                  closeMenu();
+                  setCoverOpen(true);
+                }}
+              >
+                <Icons.Photos size={13} />
+                <span className="flex-1">Portada</span>
+              </button>
+              <button
+                className="row-check cursor-pointer text-left"
+                onClick={() => {
+                  closeMenu();
+                  setMoveOpen(true);
+                }}
+              >
+                <Icons.Folder size={13} />
+                <span className="flex-1">Mover</span>
+              </button>
+              <button
+                className="row-check cursor-pointer text-left text-danger"
+                onClick={() => {
+                  closeMenu();
+                  remove();
+                }}
+                disabled={busy}
+              >
+                <Icons.Trash size={13} />
+                <span className="flex-1">Eliminar</span>
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
 
       {/* Rename modal */}
       <Dialog
