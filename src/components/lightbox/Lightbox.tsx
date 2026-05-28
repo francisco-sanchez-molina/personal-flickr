@@ -14,6 +14,7 @@ import type { Photo } from "~/lib/db";
 import { cn } from "~/lib/cn";
 import { baseUrl, fmtDate, fmtDuration, fmtSize, isVideo, photoUrl, thumbUrl } from "~/lib/photo";
 import { Icons } from "../icons";
+import ShareDialog from "../share/ShareDialog";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
 import { DEFAULT_DEVELOP, type DevelopParams } from "./develop-params";
@@ -66,6 +67,7 @@ export default function Lightbox({
   const isFav = photo.is_favorite === 1;
   const video = isVideo(photo);
   const [developOpen, setDevelopOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   // Info panel closed by default — the photo gets the full canvas. Toggled
   // with the "i" button / I key.
   const [showInfo, setShowInfo] = useState(false);
@@ -298,6 +300,9 @@ export default function Lightbox({
               <Icons.Download size={14} /> Descargar
             </Button>
           )}
+          <Button onClick={() => setShareOpen(true)}>
+            <Icons.Share size={14} /> Compartir
+          </Button>
           <Button variant="danger" onClick={onDelete}>
             <Icons.Trash size={14} /> Eliminar
           </Button>
@@ -503,6 +508,12 @@ export default function Lightbox({
           />
         </Suspense>
       )}
+
+      <ShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        photoId={photo.id}
+      />
     </div>
   );
 }

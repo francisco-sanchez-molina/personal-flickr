@@ -3,6 +3,14 @@ import { isAuthed } from "./lib/auth";
 import { config } from "./lib/config";
 
 const PUBLIC_PATHS = new Set(["/login", "/api/auth/login"]);
+/**
+ * Public path prefixes — anything under these is served without the
+ * session cookie. `/s/<token>` is the share landing page and
+ * `/files/share/<token>` is the binary bytes endpoint that backs it.
+ * The token IS the capability; the DB lookup happens inside each
+ * route, so an invalid token returns 404 from there.
+ */
+const PUBLIC_PREFIXES = ["/s/", "/files/share/"];
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
@@ -16,6 +24,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (authed && pathname === "/login") {
       return context.redirect("/");
     }
+    return next();
+  }
+
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
     return next();
   }
 

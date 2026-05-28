@@ -167,6 +167,12 @@ export const Icons = {
       <path d="m8 11 8-4M8 13l8 4" />
     </S>
   ),
+  Copy: (p: IconProps) => (
+    <S {...p}>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+    </S>
+  ),
   Compare: (p: IconProps) => (
     <S {...p}>
       <rect x="3" y="4" width="18" height="16" rx="2" />

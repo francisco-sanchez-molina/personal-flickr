@@ -1,0 +1,131 @@
+---
+import Base from "~/layouts/Base.astro";
+import { photoQueries, shareQueries } from "~/lib/db";
+import { fmtDate } from "~/lib/photo";
+
+// Public share landing page. Middleware lets `/s/*` through without auth;
+// we look the token up server-side and render either the photo or a 404.
+
+const token = Astro.params.token;
+const share = typeof token === "string" ? shareQueries.byToken(token) : null;
+const photo = share ? photoQueries.byId(share.photo_id) : null;
+
+if (!share || !photo) {
+  // Use a real HTTP status so search engines / browsers cache appropriately.
+  Astro.response.status = 404;
+}
+
+// We deliberately link the binary endpoint, not the authed `/files/photo/`.
+// Anonymous viewers can't see the developed_at cache-buster anyway.
+const fileUrl = share ? `/files/share/${share.token}` : null;
+const isVideo = photo?.kind === "video";
+---
+
+<Base title={photo ? `${photo.name} · Personal Flickr` : "Enlace no válido"}>
+  <main class="share-view">
+    {
+      !share || !photo ? (
+        <div class="share-view-empty">
+          <h1 class="serif">Enlace no válido</h1>
+          <p>El enlace ya no existe o ha sido revocado.</p>
+        </div>
+      ) : (
+        <div class="share-view-frame">
+          <figure class="share-view-figure">
+            {isVideo ? (
+              <video
+                src={fileUrl}
+                controls
+                playsinline
+                preload="metadata"
+                class="share-view-media"
+              />
+            ) : (
+              <img
+                src={fileUrl}
+                alt={photo.name}
+                width={photo.width}
+                height={photo.height}
+                class="share-view-media"
+              />
+            )}
+            <figcaption class="share-view-caption">
+              <span class="share-view-name">{photo.name}</span>
+              {photo.camera && (
+                <span class="share-view-meta">{photo.camera}</span>
+              )}
+              {photo.taken_at && (
+                <span class="share-view-meta">{fmtDate(photo.taken_at)}</span>
+              )}
+            </figcaption>
+          </figure>
+        </div>
+      )
+    }
+  </main>
+</Base>
+
+<style>
+  .share-view {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: var(--bg);
+  }
+  .share-view-empty {
+    text-align: center;
+    color: var(--ink-2);
+    max-width: 380px;
+  }
+  .share-view-empty h1 {
+    font-size: 28px;
+    margin: 0 0 12px;
+    color: var(--ink);
+  }
+  .share-view-empty p {
+    margin: 0;
+    color: var(--ink-3);
+    font-size: 14px;
+  }
+  .share-view-frame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    max-width: min(1400px, 100%);
+  }
+  .share-view-figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+  .share-view-media {
+    max-width: 100%;
+    max-height: min(92vh, 1600px);
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--bg-2);
+    object-fit: contain;
+  }
+  .share-view-caption {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    color: var(--ink-3);
+    font: 12px/1 var(--f-mono);
+    letter-spacing: 0.04em;
+    padding: 4px 6px;
+  }
+  .share-view-name {
+    color: var(--ink-2);
+  }
+  .share-view-meta::before {
+    content: "·";
+    margin-right: 14px;
+    color: var(--ink-4);
+  }
+</style>

@@ -176,3 +176,22 @@ db.exec(`
     updated_at  INTEGER NOT NULL
   );
 `);
+
+// ──────────────── photo shares (public, no-auth links) ────────────────
+//
+// A `photo_shares` row turns a 22-char URL-safe token into permission to
+// view one photo without the session cookie. The token is the primary
+// key; we look it up directly on every request to `/s/[token]` and
+// `/files/share/[token]`.
+//
+// CASCADE on photo delete so revoking access happens automatically when
+// the underlying photo is removed.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS photo_shares (
+    token       TEXT PRIMARY KEY,
+    photo_id    INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_photo_shares_photo
+    ON photo_shares(photo_id, created_at DESC);
+`);
