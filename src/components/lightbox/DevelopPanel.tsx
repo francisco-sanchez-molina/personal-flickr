@@ -170,7 +170,7 @@ export default function DevelopPanel({
   return (
     <div className="lb">
       <header className="lb-top">
-        <div style={{ minWidth: 0 }}>
+        <div className="min-w-0">
           <div className="filename">Revelar</div>
           <div className="meta">Ajusta y guarda — los cambios sustituyen la foto actual</div>
         </div>
@@ -206,12 +206,9 @@ export default function DevelopPanel({
             src={baseUrl}
             alt=""
             draggable={false}
-            style={{
-              filter: compare ? "none" : filter,
-              transform,
-              transition: "filter .12s ease, transform .25s var(--ease)",
-              maxHeight: "calc(100vh - 240px)",
-            }}
+            className="max-h-[calc(100vh-240px)] transition-[filter,transform] duration-200 ease-smooth"
+            // Dynamic: filter + transform are computed from develop params.
+            style={{ filter: compare ? "none" : filter, transform }}
           />
         </div>
 
@@ -234,7 +231,7 @@ export default function DevelopPanel({
 
           <div className="sec">
             <h3>Luz</h3>
-            <div style={{ height: 8 }} />
+            <div className="h-2" />
             <Slider
               name="Brillo"
               val={params.brightness}
@@ -257,7 +254,7 @@ export default function DevelopPanel({
 
           <div className="sec">
             <h3>Color</h3>
-            <div style={{ height: 8 }} />
+            <div className="h-2" />
             <Slider
               name="Saturación"
               val={params.saturation}
@@ -280,7 +277,7 @@ export default function DevelopPanel({
 
           <div className="sec">
             <h3>Geometría</h3>
-            <div style={{ height: 8 }} />
+            <div className="h-2" />
             <div className="slider-row">
               <div className="top">
                 <span className="name">Rotación</span>
@@ -299,16 +296,7 @@ export default function DevelopPanel({
 
           {error && (
             <div className="sec">
-              <p
-                style={{
-                  margin: 0,
-                  color: "var(--danger)",
-                  fontSize: 12.5,
-                  fontFamily: "var(--f-mono)",
-                }}
-              >
-                {error}
-              </p>
+              <p className="m-0 font-mono text-[12.5px] text-danger">{error}</p>
             </div>
           )}
         </aside>

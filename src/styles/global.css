@@ -8,6 +8,50 @@
  * roughly in the order they appear in the DOM (or by specificity).
  */
 
+/* Tailwind v4 — utilities + preflight + the @theme block below that
+   exposes our design tokens (--bg, --ink, --accent, …) as utilities
+   like bg-bg, text-ink-3, font-display, etc. */
+@import "tailwindcss";
+
+/* Map our CSS variables into Tailwind's theme namespaces so utilities like
+   `bg-bg`, `text-ink-3`, `border-line`, `font-display`, `rounded-sm` work
+   and pick up the dynamic mood/theme variables at runtime.
+   `@theme inline` means "don't redeclare these as CSS vars — inline the
+   reference into the generated utility", which is exactly what we want
+   because the source vars (--bg, --ink, …) already live in :root and get
+   overridden by [data-mood] / [data-theme] selectors. */
+@theme inline {
+  /* Colors → bg-*, text-*, border-*, outline-*, ring-* utilities */
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-ink: var(--accent-ink);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+
+  /* Fonts → font-display, font-ui, font-mono */
+  --font-display: var(--f-display);
+  --font-ui: var(--f-ui);
+  --font-mono: var(--f-mono);
+
+  /* Radii → rounded-* */
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius);
+
+  /* Easing → ease-smooth (used as `transition-[…] ease-smooth`) */
+  --ease-smooth: var(--ease);
+}
+
 /* Design tokens — must be first so all subsequent rules can use the vars */
 @import "./modules/tokens.css";
 @import "./modules/base.css";

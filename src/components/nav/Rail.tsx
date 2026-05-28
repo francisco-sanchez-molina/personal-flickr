@@ -67,7 +67,7 @@ export default function Rail({ current }: Props) {
 
   return (
     <aside className="rail">
-      <div style={{ display: "flex", flexDirection: "column", gap: 24, alignItems: "center" }}>
+      <div className="flex flex-col items-center gap-6">
         <a href="/" className="rail-logo" title="Personal Flickr" aria-label="Inicio">
           <Icons.Logo size={16} />
         </a>
@@ -87,7 +87,7 @@ export default function Rail({ current }: Props) {
         </nav>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, position: "relative" }}>
+      <div className="relative flex flex-col gap-1.5">
         {/* Mood selector */}
         <button
           className="rail-btn"
@@ -96,36 +96,27 @@ export default function Rail({ current }: Props) {
           aria-expanded={moodOpen}
         >
           <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: "50%",
-              background: "var(--accent)",
-              border: "2px solid var(--bg)",
-              boxShadow: "0 0 0 1px var(--line-2)",
-            }}
+            className="h-[18px] w-[18px] rounded-full border-2 border-bg bg-accent shadow-[0_0_0_1px_var(--line-2)]"
           />
           <span className="rail-tip">Mood</span>
         </button>
         {moodOpen && (
           <div
-            className="pop"
-            style={{ position: "absolute", left: 54, bottom: 0, minWidth: 220 }}
+            className="pop absolute bottom-0 left-[54px] min-w-[220px]"
             onMouseLeave={() => setMoodOpen(false)}
           >
             <h5>Estilo visual</h5>
             {MOODS.map((m) => (
               <label
                 key={m.id}
-                className="row-check"
+                className="row-check cursor-pointer"
                 onClick={() => {
                   applyMood(m.id);
                   setMoodOpen(false);
                 }}
-                style={{ cursor: "pointer" }}
               >
                 <input type="radio" checked={mood === m.id} readOnly />
-                <span style={{ flex: 1 }}>{m.label}</span>
+                <span className="flex-1">{m.label}</span>
               </label>
             ))}
           </div>

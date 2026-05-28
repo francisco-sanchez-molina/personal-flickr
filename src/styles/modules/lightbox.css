@@ -359,7 +359,6 @@
 .lb.is-fullscreen {
   grid-template-rows: 1fr;
 }
-.lb.is-fullscreen .lb-top,
 .lb.is-fullscreen .lb-strip,
 .lb.is-fullscreen .lb-hint,
 .lb.is-fullscreen .lb-side,
@@ -375,5 +374,39 @@
 .lb.is-fullscreen .lb-canvas img {
   border-radius: 0;
   box-shadow: none;
+}
+
+/* Top bar in fullscreen: stays in the DOM but is overlaid on top of the
+   photo and hidden by default. A tap on the stage reveals it for 4s (the
+   timeout lives in Lightbox.tsx) by adding `.chrome-visible` to the .lb. */
+.lb.is-fullscreen .lb-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.75),
+    rgba(0, 0, 0, 0)
+  );
+  border-bottom: 0;
+  padding: 18px 24px 36px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity 200ms ease,
+    transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.lb.is-fullscreen.chrome-visible .lb-top {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+/* In fullscreen the cursor on the stage is a "tap to reveal" affordance. */
+.lb.is-fullscreen .lb-canvas {
+  cursor: pointer;
 }
 

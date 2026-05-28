@@ -33,10 +33,12 @@ WORKDIR /app
 
 # Runtime tools:
 #  - libimage-exiftool-perl : extract embedded JPEG previews from RAW
+#  - ffmpeg                 : transcode uploaded videos to 720p H.264/AAC MP4
 #  - gosu                   : drop privileges in the entrypoint
 #  - tini                   : PID 1 + signal forwarding
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libimage-exiftool-perl \
+      ffmpeg \
       gosu \
       tini \
       ca-certificates \

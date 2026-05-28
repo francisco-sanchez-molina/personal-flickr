@@ -36,7 +36,7 @@ function K({ label, value }: { label: string; value: React.ReactNode }) {
       <div className="k">{label}</div>
       <div className={typeof value === "string" ? "v" : "v"}>
         {value === null || value === undefined || value === "" ? (
-          <span style={{ color: "rgba(245,243,238,.35)" }}>—</span>
+          <span className="text-[#f5f3ee59]">—</span>
         ) : (
           value
         )}
@@ -136,15 +136,7 @@ export default function LightboxInfo({ photo }: { photo: Photo }) {
 
       {!hasExif && !hasGps && (
         <div className="sec">
-          <p
-            style={{
-              margin: 0,
-              fontSize: 12.5,
-              color: "rgba(245,243,238,.55)",
-              fontFamily: "var(--f-mono)",
-              letterSpacing: ".02em",
-            }}
-          >
+          <p className="m-0 font-mono text-[12.5px] tracking-[.02em] text-[#f5f3ee8c]">
             Sin EXIF — esta foto no traía metadatos de cámara.
           </p>
         </div>
@@ -222,13 +214,7 @@ function TagEditor({ photoId }: { photoId: number }) {
   return (
     <div className="tag-row">
       {loading ? (
-        <span
-          style={{
-            font: "11px var(--f-mono)",
-            color: "rgba(245,243,238,.45)",
-            letterSpacing: ".04em",
-          }}
-        >
+        <span className="font-mono text-[11px] tracking-[.04em] text-[#f5f3ee73]">
           cargando…
         </span>
       ) : (
@@ -248,7 +234,7 @@ function TagEditor({ photoId }: { photoId: number }) {
       )}
       {editing ? (
         <form
-          style={{ display: "inline-flex", gap: 4 }}
+          className="inline-flex gap-1"
           onSubmit={(e) => {
             e.preventDefault();
             add();
@@ -277,15 +263,7 @@ function TagEditor({ photoId }: { photoId: number }) {
         </button>
       )}
       {error && (
-        <div
-          style={{
-            width: "100%",
-            marginTop: 8,
-            fontSize: 11,
-            color: "var(--danger)",
-            fontFamily: "var(--f-mono)",
-          }}
-        >
+        <div className="mt-2 w-full font-mono text-[11px] text-danger">
           {error}
         </div>
       )}
@@ -317,7 +295,7 @@ function MiniMap({ lat, lng }: { lat: number; lng: number }) {
           width="320"
           height="160"
           fill="url(#map-grid)"
-          style={{ color: "var(--ink-3)" }}
+          className="text-ink-3"
         />
         <path
           d="M-20 80 Q 40 40, 100 70 T 200 60 T 340 80"
@@ -344,7 +322,7 @@ function MiniMap({ lat, lng }: { lat: number; lng: number }) {
         <circle cx="160" cy="80" r="32" fill="none" stroke="currentColor" strokeWidth=".4" opacity=".5" />
         <circle cx="160" cy="80" r="16" fill="none" stroke="currentColor" strokeWidth=".4" opacity=".6" />
       </svg>
-      <div className="pin" style={{ left: "calc(50% - 7px)", top: "calc(50% - 7px)" }} />
+      <div className="pin top-[calc(50%-7px)] left-[calc(50%-7px)]" />
       <div className="lab">
         {lat.toFixed(4)}, {lng.toFixed(4)}
       </div>

@@ -69,9 +69,7 @@ export default function GalleriesGrid({
     <section>
       <div className="section-head">
         <div>
-          <div className="h-eyebrow" style={{ marginBottom: 8 }}>
-            Colecciones temáticas
-          </div>
+          <div className="h-eyebrow mb-2">Colecciones temáticas</div>
           <h2>Galerías</h2>
         </div>
         <div className="row">
@@ -84,20 +82,20 @@ export default function GalleriesGrid({
             </button>
           ) : (
             <form
-              style={{ display: "flex", gap: 6 }}
+              className="flex gap-1.5"
               onSubmit={(e) => {
                 e.preventDefault();
                 create();
               }}
             >
-              <div className="search" style={{ padding: "6px 10px", minWidth: 180 }}>
+              <div className="search min-w-[180px] px-2.5 py-1.5">
                 <input
                   autoFocus
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Nombre"
                   maxLength={80}
-                  style={{ fontSize: 12 }}
+                  className="text-xs"
                 />
               </div>
               <button type="submit" className="btn primary sm">
@@ -120,16 +118,7 @@ export default function GalleriesGrid({
       </div>
 
       {error && (
-        <p
-          style={{
-            margin: "0 0 12px",
-            color: "var(--danger)",
-            fontSize: 12.5,
-            fontFamily: "var(--f-mono)",
-          }}
-        >
-          {error}
-        </p>
+        <p className="m-0 mb-3 font-mono text-[12.5px] text-danger">{error}</p>
       )}
 
       {galleries.length === 0 && orphanCount === 0 ? (
@@ -147,15 +136,7 @@ export default function GalleriesGrid({
               <div className="gcard-meta">
                 <div>
                   <h3>Sin galería</h3>
-                  <div
-                    style={{
-                      color: "var(--ink-3)",
-                      fontSize: 12,
-                      marginTop: 4,
-                    }}
-                  >
-                    fotos sueltas
-                  </div>
+                  <div className="mt-1 text-xs text-ink-3">fotos sueltas</div>
                 </div>
                 <div className="mono">
                   {String(orphanCount).padStart(3, "0")}
@@ -200,16 +181,7 @@ export default function GalleriesGrid({
                 <div>
                   <h3>{g.name}</h3>
                   {g.description && (
-                    <div
-                      style={{
-                        color: "var(--ink-3)",
-                        fontSize: 12,
-                        marginTop: 4,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+                    <div className="mt-1 overflow-hidden text-xs text-ink-3 text-ellipsis whitespace-nowrap">
                       {g.description}
                     </div>
                   )}

@@ -4,10 +4,14 @@ import type { APIRoute } from "astro";
 import { paths } from "~/lib/config";
 import { assertInsideDir } from "~/lib/storage";
 
-const KIND_DIRS: Record<string, string> = {
-  photo: paths.photosDir,
-  thumb: paths.thumbsDir,
-  base: paths.basesDir,
+// thumb files always carry .mp4 / .jpg in their name (they inherit the photo's
+// stored name), but their *contents* are always WebP poster (for video) or
+// WebP thumb (for photos). Bases are always JPEG. Only the `photo` kind needs
+// real MIME-by-extension since its content varies (jpeg vs mp4).
+const KIND_DIRS: Record<string, { dir: string; fixedMime: string | null }> = {
+  photo: { dir: paths.photosDir, fixedMime: null },
+  thumb: { dir: paths.thumbsDir, fixedMime: "image/webp" },
+  base: { dir: paths.basesDir, fixedMime: "image/jpeg" },
 };
 
 const EXT_MIME: Record<string, string> = {
@@ -46,13 +50,13 @@ function parseRange(header: string, size: number): { start: number; end: number 
 export const GET: APIRoute = async ({ params, request }) => {
   const kind = params.kind ?? "";
   const file = params.file;
-  const dir = KIND_DIRS[kind];
-  if (!file || !dir) {
+  const target = KIND_DIRS[kind];
+  if (!file || !target) {
     return new Response("not found", { status: 404 });
   }
   let resolved: string;
   try {
-    resolved = assertInsideDir(file, dir);
+    resolved = assertInsideDir(file, target.dir);
   } catch {
     return new Response("invalid path", { status: 400 });
   }
@@ -64,7 +68,8 @@ export const GET: APIRoute = async ({ params, request }) => {
   }
 
   const ext = path.extname(resolved).toLowerCase();
-  const mime = EXT_MIME[ext] ?? "application/octet-stream";
+  const mime =
+    target.fixedMime ?? EXT_MIME[ext] ?? "application/octet-stream";
 
   // `photo`/`thumb` may change content (re-develop) under the same filename
   // → cache only on the client with revalidation. `base` is immutable.

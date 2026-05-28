@@ -50,14 +50,13 @@ export default function BulkActionBar({
             <strong>{count}</strong>
             seleccionada{count === 1 ? "" : "s"}
           </div>
-          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <div className="flex flex-wrap items-center gap-2">
             <button className="btn primary" onClick={() => setPickerOpen(true)}>
               <Icons.Folder size={14} /> Añadir a galería
             </button>
             <button
-              className="btn"
+              className="btn text-accent"
               onClick={() => onFavorite(!allFavorite)}
-              style={{ color: "var(--accent)" }}
             >
               {allFavorite ? (
                 <>
@@ -208,27 +207,13 @@ function BulkGalleryPicker({
         </DialogHeader>
         <DialogDescription>Seleccionar galerías destino</DialogDescription>
         <DialogBody>
-          <div style={{ maxHeight: 320, overflowY: "auto", marginBottom: 12 }}>
+          <div className="mb-3 max-h-80 overflow-y-auto">
             {loading ? (
-              <p
-                style={{
-                  margin: 0,
-                  padding: "16px 6px",
-                  color: "var(--ink-3)",
-                  fontSize: 13,
-                }}
-              >
+              <p className="m-0 px-1.5 py-4 text-[13px] text-ink-3">
                 cargando galerías…
               </p>
             ) : all.length === 0 ? (
-              <p
-                style={{
-                  margin: 0,
-                  padding: "16px 6px",
-                  color: "var(--ink-3)",
-                  fontSize: 13,
-                }}
-              >
+              <p className="m-0 px-1.5 py-4 text-[13px] text-ink-3">
                 Aún no hay galerías. Crea la primera ↓
               </p>
             ) : (
@@ -239,7 +224,7 @@ function BulkGalleryPicker({
                     checked={selected.has(g.id)}
                     onChange={() => toggle(g.id)}
                   />
-                  <span style={{ flex: 1 }}>{g.name}</span>
+                  <span className="flex-1">{g.name}</span>
                 </label>
               ))
             )}
@@ -247,13 +232,13 @@ function BulkGalleryPicker({
 
           {creating ? (
             <form
-              style={{ display: "flex", gap: 6 }}
+              className="flex gap-1.5"
               onSubmit={(e) => {
                 e.preventDefault();
                 createNew();
               }}
             >
-              <div className="search" style={{ padding: "6px 10px", flex: 1 }}>
+              <div className="search flex-1 px-2.5 py-1.5">
                 <input
                   autoFocus
                   value={newName}
@@ -278,28 +263,15 @@ function BulkGalleryPicker({
             </form>
           ) : (
             <button
-              className="btn ghost sm"
+              className="btn ghost sm w-full justify-center border-dashed border-line-2"
               onClick={() => setCreating(true)}
-              style={{
-                width: "100%",
-                justifyContent: "center",
-                borderStyle: "dashed",
-                borderColor: "var(--line-2)",
-              }}
             >
               <Icons.Plus size={13} /> Nueva galería
             </button>
           )}
 
           {error && (
-            <p
-              style={{
-                margin: "10px 0 0",
-                color: "var(--danger)",
-                fontSize: 12.5,
-                fontFamily: "var(--f-mono)",
-              }}
-            >
+            <p className="m-0 mt-2.5 font-mono text-[12.5px] text-danger">
               {error}
             </p>
           )}

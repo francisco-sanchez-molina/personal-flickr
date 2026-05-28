@@ -74,7 +74,7 @@ export default function UploaderModal() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent size="md">
         <DialogHeader>
-          <DialogTitle>Subir fotos</DialogTitle>
+          <DialogTitle>Subir fotos y vídeos</DialogTitle>
           <DialogClose asChild>
             <button className="iconbtn" aria-label="Cerrar">
               <Icons.Close size={15} />
@@ -82,7 +82,7 @@ export default function UploaderModal() {
           </DialogClose>
         </DialogHeader>
         <DialogDescription>
-          Sube fotos al servidor — JPEG, PNG, HEIC y RAW de cámara
+          Fotos (JPEG, PNG, HEIC, RAW) y vídeos (se transcodifican a 720p H.264)
         </DialogDescription>
         <div className="dialog-body">
           <Uploader

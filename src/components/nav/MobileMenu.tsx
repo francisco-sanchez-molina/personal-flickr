@@ -122,15 +122,9 @@ export default function MobileMenu({ open, onClose, current }: Props) {
               type="button"
             >
               <span
-                style={{
-                  display: "inline-block",
-                  width: 14,
-                  height: 14,
-                  borderRadius: "50%",
-                  background: m.color,
-                  border: "1px solid var(--line-2)",
-                  flexShrink: 0,
-                }}
+                className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-line-2"
+                // Mood color is data-driven; can't be a Tailwind utility.
+                style={{ background: m.color }}
                 aria-hidden="true"
               />
               <span>{m.label}</span>
@@ -149,11 +143,7 @@ export default function MobileMenu({ open, onClose, current }: Props) {
         </SheetSection>
 
         <SheetSection>
-          <form
-            method="POST"
-            action="/api/auth/logout"
-            style={{ margin: 0 }}
-          >
+          <form method="POST" action="/api/auth/logout" className="m-0">
             <SheetItem type="submit">
               <Icons.Close size={18} />
               <span>Salir</span>

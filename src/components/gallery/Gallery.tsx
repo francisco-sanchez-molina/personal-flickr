@@ -214,27 +214,11 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
   return (
     <>
       {/* Selection-mode header */}
-      <div
-        className="row"
-        style={{ justifyContent: "space-between", marginBottom: 14 }}
-      >
-        <div
-          style={{
-            fontFamily: "var(--f-mono)",
-            fontSize: 11.5,
-            color: "var(--ink-3)",
-            letterSpacing: ".04em",
-          }}
-        >
+      <div className="mb-3.5 flex items-center justify-between gap-3">
+        <div className="font-mono text-[11.5px] tracking-[.04em] text-ink-3">
           {selection.selectMode ? (
             <>
-              <strong
-                style={{
-                  color: "var(--ink)",
-                  fontFamily: "var(--f-ui)",
-                  fontSize: 13,
-                }}
-              >
+              <strong className="font-ui text-[13px] text-ink">
                 {selection.selected.size}
               </strong>{" "}
               seleccionada{selection.selected.size === 1 ? "" : "s"} · click
@@ -244,7 +228,7 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
             <>click para abrir · shift+click para seleccionar varias</>
           )}
         </div>
-        <div className="row" style={{ gap: 6 }}>
+        <div className="flex items-center gap-1.5">
           {selection.selectMode ? (
             <>
               <button className="btn sm" onClick={selection.selectAll}>

@@ -48,35 +48,24 @@ export default function Topbar({ title, breadcrumb, current }: Props) {
 
   return (
     <header className="topbar">
-      <div className="row topbar-breadcrumb" style={{ gap: 10, minWidth: 0 }}>
+      <div className="topbar-breadcrumb flex min-w-0 items-center gap-2.5">
         {breadcrumb ? (
           <>
             <a className="btn ghost sm" href={breadcrumb.parentHref}>
               {breadcrumb.parent}
             </a>
-            <span style={{ color: "var(--ink-4)" }}>/</span>
-            <span
-              className="serif"
-              style={{
-                fontSize: 18,
-                color: "var(--ink)",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
+            <span className="text-ink-4">/</span>
+            <span className="serif overflow-hidden text-[18px] text-ellipsis whitespace-nowrap text-ink">
               {breadcrumb.title}
             </span>
           </>
         ) : (
-          <span className="serif" style={{ fontSize: 20, color: "var(--ink)" }}>
-            {title ?? ""}
-          </span>
+          <span className="serif text-[20px] text-ink">{title ?? ""}</span>
         )}
       </div>
 
       <form className="search" onSubmit={onSubmit}>
-        <span style={{ color: "var(--ink-3)", display: "inline-flex" }}>
+        <span className="inline-flex text-ink-3">
           <Icons.Search size={16} />
         </span>
         <input
@@ -103,8 +92,7 @@ export default function Topbar({ title, breadcrumb, current }: Props) {
       <form
         method="POST"
         action="/api/auth/logout"
-        style={{ margin: 0 }}
-        className="lbl-d"
+        className="lbl-d m-0"
       >
         <button type="submit" className="btn ghost sm">
           Salir

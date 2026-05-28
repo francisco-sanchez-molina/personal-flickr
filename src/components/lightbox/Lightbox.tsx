@@ -4,7 +4,7 @@
  * parent owns the active index and lifecycle callbacks (close, delete,
  * toggle-favorite, developed).
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   TransformComponent,
   TransformWrapper,
@@ -69,6 +69,43 @@ export default function Lightbox({
   const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(containerRef);
   usePreloadNeighbors(photos, index);
 
+  // ──────────────── Fullscreen chrome reveal ────────────────
+  // In fullscreen the top bar is hidden so the photo gets the whole screen.
+  // Tapping the photo reveals it for 4s (or until another tap toggles it
+  // off). The timer is reset on every reveal.
+  const [chromeVisible, setChromeVisible] = useState(false);
+  const chromeTimerRef = useRef<number | null>(null);
+  const clearChromeTimer = useCallback(() => {
+    if (chromeTimerRef.current != null) {
+      clearTimeout(chromeTimerRef.current);
+      chromeTimerRef.current = null;
+    }
+  }, []);
+  const revealChromeTemporarily = useCallback(() => {
+    setChromeVisible(true);
+    clearChromeTimer();
+    chromeTimerRef.current = window.setTimeout(() => {
+      setChromeVisible(false);
+      chromeTimerRef.current = null;
+    }, 4000);
+  }, [clearChromeTimer]);
+  // Reset whenever fullscreen toggles (hide on enter; harmless on exit).
+  useEffect(() => {
+    clearChromeTimer();
+    setChromeVisible(false);
+  }, [isFullscreen, clearChromeTimer]);
+  // Cleanup on unmount.
+  useEffect(() => () => clearChromeTimer(), [clearChromeTimer]);
+  const onStageClick = useCallback(() => {
+    if (!isFullscreen) return;
+    if (chromeVisible) {
+      clearChromeTimer();
+      setChromeVisible(false);
+    } else {
+      revealChromeTemporarily();
+    }
+  }, [isFullscreen, chromeVisible, clearChromeTimer, revealChromeTemporarily]);
+
   const swipe = useSwipeNav({
     isZoomed,
     count: photos.length,
@@ -118,10 +155,21 @@ export default function Lightbox({
   return (
     <div
       ref={containerRef}
-      className={cn("lb", isFullscreen && "is-fullscreen")}
+      className={cn(
+        "lb",
+        isFullscreen && "is-fullscreen",
+        isFullscreen && chromeVisible && "chrome-visible",
+      )}
     >
-      <header className="lb-top">
-        <div style={{ minWidth: 0 }}>
+      <header
+        className="lb-top"
+        // While chrome is visible in fullscreen, any interaction with it
+        // resets the auto-hide timer — so reading the meta / hovering over
+        // a button doesn't make the bar disappear under the cursor.
+        onMouseMove={isFullscreen && chromeVisible ? revealChromeTemporarily : undefined}
+        onPointerDown={isFullscreen && chromeVisible ? revealChromeTemporarily : undefined}
+      >
+        <div className="min-w-0">
           <div className="filename">{photo.name}</div>
           <div className="meta">
             {photo.width}×{photo.height} · {fmtSize(photo.size_bytes)}
@@ -131,19 +179,18 @@ export default function Lightbox({
             {" · "}
             {fmtDate(photo.uploaded_at)} · {index + 1}/{photos.length}
             {isZoomed && (
-              <span style={{ color: "var(--accent)", marginLeft: 8 }}>
+              <span className="ml-2 text-accent">
                 · {scale.toFixed(1)}×
               </span>
             )}
           </div>
         </div>
-        <div className="lb-actions" style={{ position: "relative" }}>
+        <div className="lb-actions relative">
           <button
-            className="iconbtn"
+            className={cn("iconbtn", isFav && "text-accent")}
             onClick={onToggleFavorite}
             title={isFav ? "Quitar favorita (F)" : "Marcar favorita (F)"}
             aria-pressed={isFav}
-            style={isFav ? { color: "var(--accent)" } : undefined}
           >
             {isFav ? <Icons.StarFill size={15} /> : <Icons.Star size={15} />}
           </button>
@@ -201,6 +248,7 @@ export default function Lightbox({
       <div className={cn("lb-stage", showInfo && "with-info")}>
         <div
           className="lb-canvas"
+          onClick={onStageClick}
           onPointerDown={swipe.onPointerDown}
           onPointerMove={swipe.onPointerMove}
           onPointerUp={swipe.onPointerEnd}
@@ -228,14 +276,15 @@ export default function Lightbox({
                 playsInline
                 preload="metadata"
                 poster={thumbUrl(photo)}
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: "calc(100vh - 200px)",
-                  width: "auto",
-                  height: "auto",
-                  display: "block",
-                  background: "#000",
-                }}
+                // In fullscreen the chrome is gone — let the photo / video
+                // use the entire viewport rather than reserving 200px for
+                // a top bar that isn't rendered.
+                className={cn(
+                  "block h-auto w-auto max-w-full bg-black",
+                  isFullscreen
+                    ? "max-h-screen"
+                    : "max-h-[calc(100vh-200px)]",
+                )}
               />
             ) : (
               <TransformWrapper
@@ -275,13 +324,12 @@ export default function Lightbox({
                     src={photoUrl(photo)}
                     alt={photo.name}
                     draggable={false}
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "calc(100vh - 200px)",
-                      width: "auto",
-                      height: "auto",
-                      display: "block",
-                    }}
+                    className={cn(
+                      "block h-auto w-auto max-w-full",
+                      isFullscreen
+                        ? "max-h-screen"
+                        : "max-h-[calc(100vh-200px)]",
+                    )}
                   />
                 </TransformComponent>
               </TransformWrapper>
@@ -296,9 +344,14 @@ export default function Lightbox({
             <Icons.ChevR size={18} />
           </button>
 
-          {!isZoomed && (
+          {!isZoomed && !video && (
             <div className="lb-hint">
               pellizca o doble-tap para zoom · ← → cambia · I info · F pantalla completa
+            </div>
+          )}
+          {video && (
+            <div className="lb-hint">
+              ← → cambia · I info · F pantalla completa
             </div>
           )}
         </div>

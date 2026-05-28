@@ -186,21 +186,20 @@ export default function Uploader({
     setQueue((q) => q.filter((it) => it.id !== id));
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div className="grid gap-3.5">
       {defaultGalleryId != null && defaultGalleryName && (
         <div
+          // Uses color-mix() against --accent to tint the chip — can't be
+          // a Tailwind utility because the mix is computed from a CSS var.
+          className="rounded-[10px] px-3.5 py-2.5 text-[13px] text-ink"
           style={{
-            padding: "10px 14px",
             border: "1px solid color-mix(in srgb, var(--accent) 30%, var(--line))",
             background: "color-mix(in srgb, var(--accent) 6%, transparent)",
-            borderRadius: 10,
-            fontSize: 13,
-            color: "var(--ink)",
           }}
         >
-          <span style={{ color: "var(--accent)", marginRight: 6 }}>→</span>
+          <span className="mr-1.5 text-accent">→</span>
           Las fotos se añadirán a{" "}
-          <strong style={{ fontWeight: 600 }}>{defaultGalleryName}</strong>
+          <strong className="font-semibold">{defaultGalleryName}</strong>
         </div>
       )}
 
@@ -219,16 +218,16 @@ export default function Uploader({
         <div className="icon">
           <Icons.Upload size={22} />
         </div>
-        <div className="big serif">Arrastra fotos aquí</div>
+        <div className="big serif">Arrastra fotos o vídeos aquí</div>
         <div className="sub">
-          o haz click para seleccionar · JPEG / PNG / HEIC / CR2 / CR3 / RAF / ARW
+          o haz click para seleccionar · JPEG / PNG / HEIC / RAW · MP4 / MOV
         </div>
         <input
           ref={inputRef}
           type="file"
           multiple
-          accept="image/*,.cr2,.CR2,.cr3,.CR3,.nef,.NEF,.arw,.ARW,.dng,.DNG,.raf,.RAF,.orf,.ORF,.rw2,.RW2"
-          style={{ display: "none" }}
+          accept="image/*,video/*,.cr2,.CR2,.cr3,.CR3,.nef,.NEF,.arw,.ARW,.dng,.DNG,.raf,.RAF,.orf,.ORF,.rw2,.RW2,.mp4,.MP4,.mov,.MOV,.m4v,.M4V,.webm,.WEBM,.mkv,.MKV"
+          className="hidden"
           onChange={onPick}
         />
       </div>
@@ -278,13 +277,7 @@ function QueueRow({
           {status === "conflict" && (
             <>
               ya existe{" "}
-              <code
-                style={{
-                  background: "var(--bg-3)",
-                  padding: "1px 5px",
-                  borderRadius: 4,
-                }}
-              >
+              <code className="rounded bg-bg-3 px-1.5 py-px">
                 {item.finalName}
               </code>
             </>
@@ -313,13 +306,7 @@ function QueueRow({
       </div>
       <div className={`up-status ${status === "done" ? "done" : status === "error" ? "err" : ""}`}>
         {status === "done" ? (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
+          <span className="inline-flex items-center gap-1.5">
             <Icons.Check size={14} /> OK
           </span>
         ) : status === "error" ? (
@@ -333,15 +320,8 @@ function QueueRow({
         )}
         {(status === "done" || status === "error") && (
           <button
-            className="iconbtn"
+            className="iconbtn ml-2 inline-grid h-6 w-6 align-middle"
             onClick={onDismiss}
-            style={{
-              width: 24,
-              height: 24,
-              marginLeft: 8,
-              display: "inline-grid",
-              verticalAlign: "middle",
-            }}
             aria-label="Descartar"
           >
             <Icons.Close size={12} />

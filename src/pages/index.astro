@@ -112,7 +112,7 @@ function relativeTime(ts: number): string {
             Fotos
           </a>
           <a href="/?view=favorites" class:list={{ on: view === "favorites" }}>
-            <span style="color:var(--accent)">★</span> Favoritas
+            <span class="text-accent">★</span> Favoritas
           </a>
           <a href="/?view=tags" class:list={{ on: view === "tags" }}>
             Etiquetas
@@ -128,8 +128,7 @@ function relativeTime(ts: number): string {
           {featuredGallery && featuredGallery.cover_name && (
             <a
               href={`/g/${featuredGallery.slug}`}
-              class="hero"
-              style="display:block;text-decoration:none;color:inherit;"
+              class="hero block text-inherit no-underline"
             >
               <img
                 src={`/files/photo/${encodeURIComponent(featuredGallery.cover_name)}?v=${featuredGallery.cover_developed_at ?? 0}`}
@@ -160,7 +159,7 @@ function relativeTime(ts: number): string {
           )}
 
           {/* Galleries strip */}
-          <section style="margin-bottom:48px;">
+          <section class="mb-12">
             <GalleriesGrid
               client:load
               initial={galleries}
@@ -174,7 +173,7 @@ function relativeTime(ts: number): string {
             <section>
               <div class="section-head">
                 <div>
-                  <div class="h-eyebrow" style="margin-bottom:8px;">
+                  <div class="h-eyebrow mb-2">
                     Subidas recientes
                   </div>
                   <h2>Últimas fotos</h2>
@@ -197,7 +196,7 @@ function relativeTime(ts: number): string {
         <section>
           <div class="section-head">
             <div>
-              <div class="h-eyebrow" style="margin-bottom:8px;">
+              <div class="h-eyebrow mb-2">
                 Organizadas por concepto
               </div>
               <h2>Etiquetas</h2>
@@ -213,16 +212,14 @@ function relativeTime(ts: number): string {
               </div>
             </div>
           ) : (
-            <div class="chips" style="gap:6px;max-width:900px;">
+            <div class="chips max-w-[900px] gap-1.5">
               {tags.map((t) => (
                 <a
                   href={`/?view=tags&tag=${encodeURIComponent(t.name)}`}
                   class="chip"
                 >
                   {t.name}{" "}
-                  <span style="opacity:.55;margin-left:4px;">
-                    {t.photo_count}
-                  </span>
+                  <span class="ml-1 opacity-55">{t.photo_count}</span>
                 </a>
               ))}
             </div>
@@ -232,7 +229,7 @@ function relativeTime(ts: number): string {
         <section>
           <div class="section-head">
             <div>
-              <div class="h-eyebrow" style="margin-bottom:8px;">
+              <div class="h-eyebrow mb-2">
                 Resultados
               </div>
               <h2>“{q}”</h2>
@@ -243,16 +240,12 @@ function relativeTime(ts: number): string {
               {galleries.length === 1 ? "galería" : "galerías"}
             </span>
           </div>
-          <a
-            href="/"
-            class="btn ghost sm"
-            style="margin-bottom:18px;display:inline-flex;"
-          >
+          <a href="/" class="btn ghost sm mb-[18px] inline-flex">
             ← Limpiar
           </a>
           {galleries.length > 0 && (
-            <div style="margin-bottom:32px;">
-              <div class="h-eyebrow" style="margin-bottom:10px;">
+            <div class="mb-8">
+              <div class="h-eyebrow mb-2.5">
                 Galerías
               </div>
               <GalleriesGrid
@@ -265,7 +258,7 @@ function relativeTime(ts: number): string {
           )}
           {photos.length > 0 ? (
             <div>
-              <div class="h-eyebrow" style="margin-bottom:10px;">
+              <div class="h-eyebrow mb-2.5">
                 Fotos
               </div>
               <Gallery client:load initial={photos} />
@@ -282,16 +275,13 @@ function relativeTime(ts: number): string {
           <div class="section-head">
             <div>
               {view === "tags" && activeTag && (
-                <nav style="margin-bottom:10px;font-size:13px;">
-                  <a
-                    href="/?view=tags"
-                    style="color:var(--ink-3);text-decoration:none;"
-                  >
+                <nav class="mb-2.5 text-[13px]">
+                  <a href="/?view=tags" class="text-ink-3 no-underline">
                     ← Etiquetas
                   </a>
                 </nav>
               )}
-              <div class="h-eyebrow" style="margin-bottom:8px;">
+              <div class="h-eyebrow mb-2">
                 {view === "favorites"
                   ? "Tu selección"
                   : view === "photos"
@@ -315,7 +305,7 @@ function relativeTime(ts: number): string {
             </span>
           </div>
           {view === "orphans" && (
-            <p style="margin:-6px 0 22px;color:var(--ink-3);font-size:12.5px;font-family:var(--f-mono);letter-spacing:.02em;">
+            <p class="mt-[-6px] mb-[22px] font-mono text-[12.5px] tracking-[.02em] text-ink-3">
               Fotos que aún no están en ninguna galería. Al añadirlas a una
               galería desaparecen de esta lista.
             </p>

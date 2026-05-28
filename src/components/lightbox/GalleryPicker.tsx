@@ -138,32 +138,16 @@ export default function GalleryPicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent side="bottom" align="end" style={{ width: 280 }}>
+      <PopoverContent side="bottom" align="end" className="w-[280px]">
         <PopoverHeader>
           <PopoverTitle>Añadir a galerías</PopoverTitle>
         </PopoverHeader>
 
-        <div style={{ maxHeight: 280, overflowY: "auto", margin: "0 -4px" }}>
+        <div className="-mx-1 max-h-[280px] overflow-y-auto">
           {loading ? (
-            <p
-              style={{
-                margin: 0,
-                padding: "6px 4px",
-                color: "var(--ink-3)",
-                fontSize: 12.5,
-              }}
-            >
-              cargando…
-            </p>
+            <p className="m-0 px-1 py-1.5 text-[12.5px] text-ink-3">cargando…</p>
           ) : all.length === 0 ? (
-            <p
-              style={{
-                margin: 0,
-                padding: "6px 4px",
-                color: "var(--ink-3)",
-                fontSize: 12.5,
-              }}
-            >
+            <p className="m-0 px-1 py-1.5 text-[12.5px] text-ink-3">
               Aún no hay galerías. Crea la primera ↓
             </p>
           ) : (
@@ -177,14 +161,7 @@ export default function GalleryPicker({
                   checked={selected.has(g.id)}
                   onChange={() => toggle(g.id)}
                 />
-                <span
-                  style={{
-                    flex: 1,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                   {g.name}
                 </span>
               </label>
@@ -192,19 +169,17 @@ export default function GalleryPicker({
           )}
         </div>
 
-        <div
-          style={{ height: 1, background: "var(--line)", margin: "8px -4px" }}
-        />
+        <div className="-mx-1 my-2 h-px bg-line" />
 
         {creating ? (
           <form
-            style={{ display: "flex", gap: 6 }}
+            className="flex gap-1.5"
             onSubmit={(e) => {
               e.preventDefault();
               createNew();
             }}
           >
-            <div className="search" style={{ padding: "5px 8px", flex: 1 }}>
+            <div className="search flex-1 px-2 py-1">
               <input
                 autoFocus
                 value={newName}
@@ -229,28 +204,15 @@ export default function GalleryPicker({
           </form>
         ) : (
           <button
-            className="btn ghost sm"
+            className="btn ghost sm w-full justify-center border-dashed border-line-2"
             onClick={() => setCreating(true)}
-            style={{
-              width: "100%",
-              justifyContent: "center",
-              borderStyle: "dashed",
-              borderColor: "var(--line-2)",
-            }}
           >
             <Icons.Plus size={13} /> Nueva galería
           </button>
         )}
 
         {error && (
-          <p
-            style={{
-              margin: "10px 0 0",
-              color: "var(--danger)",
-              fontSize: 12,
-              fontFamily: "var(--f-mono)",
-            }}
-          >
+          <p className="m-0 mt-2.5 font-mono text-xs text-danger">
             {error}
           </p>
         )}

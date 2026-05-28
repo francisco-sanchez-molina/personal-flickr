@@ -6,7 +6,7 @@
  */
 import { useEffect } from "react";
 import type { Photo } from "~/lib/db";
-import { photoUrl } from "~/lib/photo";
+import { isVideo, photoUrl } from "~/lib/photo";
 
 export function usePreloadNeighbors(
   photos: Photo[],
@@ -19,6 +19,9 @@ export function usePreloadNeighbors(
     for (const offset of offsets) {
       const i = (index + offset + photos.length) % photos.length;
       if (i === index) continue;
+      // Don't preload video — would burn bandwidth fetching tens of MB by
+      // accident. The thumb is enough; full media loads on navigation.
+      if (isVideo(photos[i])) continue;
       const img = new Image();
       img.decoding = "async";
       img.src = photoUrl(photos[i]);

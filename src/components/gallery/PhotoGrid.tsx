@@ -30,7 +30,7 @@ export default function PhotoGrid({
   onToggleFavorite,
 }: Props) {
   return (
-    <div className="masonry" style={{ userSelect: "none" } as React.CSSProperties}>
+    <div className="masonry select-none">
       {photos.map((p, i) => {
         const isSelected = selected.has(p.id);
         return (
@@ -52,10 +52,10 @@ export default function PhotoGrid({
               alt={p.name}
               loading="lazy"
               draggable={false}
-              style={{
-                aspectRatio: `${p.width}/${p.height}`,
-                background: "var(--bg-3)",
-              }}
+              className="bg-bg-3"
+              // aspectRatio uses photo's intrinsic dimensions — must stay
+              // inline because Tailwind doesn't generate dynamic ratios.
+              style={{ aspectRatio: `${p.width}/${p.height}` }}
             />
             {isVideo(p) && (
               <>
@@ -81,14 +81,12 @@ export default function PhotoGrid({
               )}
             </button>
             <div className="overlay">
-              <div style={{ minWidth: 0 }}>
+              <div className="min-w-0">
                 <div className="name">{p.name}</div>
               </div>
-              <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+              <div className="text-right whitespace-nowrap">
                 {p.width}×{p.height}
-                <div style={{ opacity: 0.75, marginTop: 3 }}>
-                  {fmtSize(p.size_bytes)}
-                </div>
+                <div className="mt-0.5 opacity-75">{fmtSize(p.size_bytes)}</div>
               </div>
             </div>
           </div>

@@ -20,6 +20,7 @@
 - 📸 **Soporta RAW** de cámara: CR2, CR3, NEF, ARW, DNG, RAF, ORF, RW2
   - macOS: usa `sips` built-in
   - Linux/Docker: usa `exiftool` para extraer el JPEG embebido (~200 ms por foto)
+- 🎬 **Vídeo** (MP4 / MOV / M4V / WebM / MKV) con transcodificación automática a **720p H.264 / AAC** (CRF 23, `+faststart`). Pensado para "HD pero más pequeño que WhatsApp": un clip 1080p del móvil se queda en ~1.5-2.5 Mbps. Requiere `ffmpeg` en PATH (incluido en el Dockerfile).
 - 🎚 **Panel de revelado** con sliders (brillo, contraste, saturación, hue, rotar) — preview en vivo con CSS filters, save aplica el mismo pipeline en `sharp`
 - 🔄 **Re-revelado no-destructivo**: el JPEG embebido se preserva como "base"; puedes volver a abrir Revelar sin perder calidad
 - 🖼 **Lightbox** con pinch-zoom, swipe entre fotos, doble-tap, navegación con teclado
@@ -44,6 +45,7 @@
 - Node 22+
 - `pnpm` (o npm)
 - macOS o Linux con `exiftool` instalado (auto-instalado en el Dockerfile)
+- `ffmpeg` + `ffprobe` en PATH si quieres subir vídeos (`brew install ffmpeg` en macOS, auto-instalado en el Dockerfile)
 
 ## Setup local
 
@@ -146,6 +148,9 @@ El repo incluye un **`Dockerfile` multi-stage** (~750 MB) con:
    ```
    TARGET_SIZE_MB=2
    MAX_DIMENSION=2560
+   VIDEO_MAX_DIM=1280          # lado más largo del vídeo transcodificado (720p)
+   VIDEO_CRF=23                # 18 = mejor calidad / 28 = más compresión
+   VIDEO_AUDIO_KBPS=128
    DATA_DIR=/data
    ```
    ⚠️ **NO marques `Build Variable`** en estas — son runtime only.
@@ -206,6 +211,9 @@ docker exec <container> tar xzf /tmp/backup.tgz -C /
 | `SESSION_SECRET` | _auto_     | HMAC de la cookie. Si vacío, se genera + persiste en `$DATA_DIR/.session-secret` |
 | `TARGET_SIZE_MB` | `2`        | Tamaño objetivo del JPEG procesado                         |
 | `MAX_DIMENSION`  | `2560`     | Lado más largo tras resize                                 |
+| `VIDEO_MAX_DIM`  | `1280`     | Lado más largo del vídeo transcodificado (1280 ≈ 720p)     |
+| `VIDEO_CRF`      | `23`       | Calidad H.264 (libx264). Menos = mejor calidad / más peso  |
+| `VIDEO_AUDIO_KBPS` | `128`    | Bitrate del audio AAC                                      |
 | `DATA_DIR`       | `./data`   | Dónde se guarda todo (en Docker se setea a `/data`)        |
 | `HOST`           | `0.0.0.0`  | Bind host (Astro Node adapter)                             |
 | `PORT`           | `4321`     | Puerto (Astro Node adapter)                                |
@@ -224,6 +232,25 @@ docker exec <container> tar xzf /tmp/backup.tgz -C /
 5. `POST /api/upload` re-valida la colisión en el servidor antes de escribir.
 
 ## Pipeline de procesado
+
+### Vídeo
+
+```
+upload tmp/  →  ffprobe (width, height, duration, rotation)
+              → ffmpeg -vf scale=W:H -c:v libx264 -crf 23 -preset medium
+                       -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart
+              → data/photos/{name}.mp4
+              → ffmpeg -ss 1 -frames:v 1 (poster) → sharp 480 webp
+              → data/thumbs/{name}.mp4   (contenido webp, MIME se sirve correcto)
+```
+
+Métricas típicas con los defaults (720p / CRF 23):
+- vídeo 1080p del iPhone (~17 Mbps) → 720p ~1.5-2.5 Mbps → **~10-15× más pequeño**
+- comparado con WhatsApp (~480p / 700 kbps): más resolución, más bitrate, **visiblemente mejor**
+
+Las galerías, favoritos, tags y lightbox tratan vídeo y foto igual (mismo schema `photos` con columna `kind`). El lightbox conmuta al `<video>` nativo con controles cuando el item es vídeo (sin zoom ni Revelar).
+
+### Foto
 
 ```
 upload tmp/  →  ¿es RAW?

@@ -118,13 +118,13 @@ export default function GalleryHeader({
           <DialogBody>
             <form
               id="rename-form"
-              style={{ display: "grid", gap: 10 }}
+              className="grid gap-2.5"
               onSubmit={(e) => {
                 e.preventDefault();
                 save();
               }}
             >
-              <div className="search" style={{ padding: 10 }}>
+              <div className="search p-2.5">
                 <input
                   autoFocus
                   value={name}
@@ -134,14 +134,7 @@ export default function GalleryHeader({
                 />
               </div>
               {error && (
-                <p
-                  style={{
-                    margin: 0,
-                    color: "var(--danger)",
-                    fontSize: 12.5,
-                    fontFamily: "var(--f-mono)",
-                  }}
-                >
+                <p className="m-0 font-mono text-[12.5px] text-danger">
                   {error}
                 </p>
               )}

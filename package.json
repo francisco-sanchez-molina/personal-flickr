@@ -36,8 +36,10 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@tailwindcss/vite": "^4.3.0",
     "cloudflared": "^0.7.1",
     "concurrently": "^9.2.1",
+    "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3"
   },
   "pnpm": {
