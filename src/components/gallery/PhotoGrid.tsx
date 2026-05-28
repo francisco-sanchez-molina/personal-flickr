@@ -57,13 +57,24 @@ export default function PhotoGrid({
               // inline because Tailwind doesn't generate dynamic ratios.
               style={{ aspectRatio: `${p.width}/${p.height}` }}
             />
-            {isVideo(p) && (
+            {isVideo(p) && p.processing_status === "ready" && (
               <>
                 <div className="play-badge" aria-hidden>
                   <Icons.Play size={22} />
                 </div>
                 <div className="duration-badge">{fmtDuration(p.duration_ms)}</div>
               </>
+            )}
+            {isVideo(p) && p.processing_status === "processing" && (
+              <div className="processing-overlay" aria-live="polite">
+                <div className="spinner" />
+                <div className="processing-label">Procesando vídeo…</div>
+              </div>
+            )}
+            {isVideo(p) && p.processing_status === "failed" && (
+              <div className="processing-overlay failed">
+                <div className="processing-label">Error al procesar</div>
+              </div>
             )}
             {selectMode && <div className="check">✓</div>}
             <button
@@ -86,7 +97,9 @@ export default function PhotoGrid({
               </div>
               <div className="text-right whitespace-nowrap">
                 {p.width}×{p.height}
-                <div className="mt-0.5 opacity-75">{fmtSize(p.size_bytes)}</div>
+                <div className="mt-0.5 opacity-75">
+                  {p.size_bytes > 0 ? fmtSize(p.size_bytes) : "—"}
+                </div>
               </div>
             </div>
           </div>

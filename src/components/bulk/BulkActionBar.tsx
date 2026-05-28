@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import NewGalleryForm from "../gallery/NewGalleryForm";
 import { Icons } from "../icons";
+import ErrorText from "../ui/ErrorText";
 import {
   Dialog,
   DialogBody,
@@ -113,8 +115,6 @@ function BulkGalleryPicker({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -138,25 +138,10 @@ function BulkGalleryPicker({
     });
   };
 
-  const createNew = async () => {
-    const name = newName.trim();
-    if (!name) return;
-    setError(null);
-    try {
-      const res = await fetch("/api/galleries", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
-      setAll((g) => [body.gallery, ...g]);
-      setSelected((s) => new Set([...s, body.gallery.id]));
-      setNewName("");
-      setCreating(false);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
+  const onGalleryCreated = (g: Gallery) => {
+    setAll((arr) => [g, ...arr]);
+    // Auto-select the newly created one so a quick "create + save" works.
+    setSelected((s) => new Set([...s, g.id]));
   };
 
   const save = async () => {
@@ -230,51 +215,9 @@ function BulkGalleryPicker({
             )}
           </div>
 
-          {creating ? (
-            <form
-              className="flex gap-1.5"
-              onSubmit={(e) => {
-                e.preventDefault();
-                createNew();
-              }}
-            >
-              <div className="search flex-1 px-2.5 py-1.5">
-                <input
-                  autoFocus
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  maxLength={80}
-                  placeholder="Nombre de la galería"
-                />
-              </div>
-              <button type="submit" className="btn primary sm">
-                Crear
-              </button>
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() => {
-                  setCreating(false);
-                  setNewName("");
-                }}
-              >
-                ✕
-              </button>
-            </form>
-          ) : (
-            <button
-              className="btn ghost sm w-full justify-center border-dashed border-line-2"
-              onClick={() => setCreating(true)}
-            >
-              <Icons.Plus size={13} /> Nueva galería
-            </button>
-          )}
+          <NewGalleryForm onCreated={onGalleryCreated} />
 
-          {error && (
-            <p className="m-0 mt-2.5 font-mono text-[12.5px] text-danger">
-              {error}
-            </p>
-          )}
+          <ErrorText message={error} className="mt-2.5" />
         </DialogBody>
         <DialogFooter>
           <DialogClose asChild>

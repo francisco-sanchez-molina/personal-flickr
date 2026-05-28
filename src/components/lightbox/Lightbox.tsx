@@ -172,7 +172,8 @@ export default function Lightbox({
         <div className="min-w-0">
           <div className="filename">{photo.name}</div>
           <div className="meta">
-            {photo.width}×{photo.height} · {fmtSize(photo.size_bytes)}
+            {photo.width}×{photo.height}
+            {photo.size_bytes > 0 && <> · {fmtSize(photo.size_bytes)}</>}
             {video && photo.duration_ms != null && (
               <> · {fmtDuration(photo.duration_ms)}</>
             )}
@@ -204,14 +205,16 @@ export default function Lightbox({
               <Icons.Folder size={14} /> Galerías
             </button>
           </GalleryPicker>
-          <a
-            className="btn"
-            href={photoUrl(photo)}
-            download={photo.name}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Icons.Download size={14} /> Descargar
-          </a>
+          {photo.processing_status === "ready" && (
+            <a
+              className="btn"
+              href={photoUrl(photo)}
+              download={photo.name}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Icons.Download size={14} /> Descargar
+            </a>
+          )}
           <button className="btn danger" onClick={onDelete}>
             <Icons.Trash size={14} /> Eliminar
           </button>
@@ -264,7 +267,36 @@ export default function Lightbox({
           </button>
 
           <div style={stageImgStyle}>
-            {video ? (
+            {video && photo.processing_status !== "ready" ? (
+              // Transcoding still running (or failed). Show the poster + an
+              // overlay; the actual MP4 doesn't exist on disk yet so we can't
+              // mount a <video>.
+              <div className="lb-processing">
+                <img
+                  src={thumbUrl(photo)}
+                  alt={photo.name}
+                  draggable={false}
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "calc(100vh - 200px)",
+                    width: "auto",
+                    height: "auto",
+                    display: "block",
+                    opacity: 0.55,
+                  }}
+                />
+                <div className="lb-processing-overlay">
+                  {photo.processing_status === "processing" ? (
+                    <>
+                      <div className="spinner" />
+                      <div>Procesando vídeo… esto puede tardar unos segundos</div>
+                    </>
+                  ) : (
+                    <div>Error al procesar el vídeo. Borra y vuelve a subirlo.</div>
+                  )}
+                </div>
+              </div>
+            ) : video ? (
               // Native video element with controls. Re-mount on photo change
               // (key=photo.id) so the previous source is torn down and the new
               // one starts fresh. `playsInline` is needed on iOS to avoid the

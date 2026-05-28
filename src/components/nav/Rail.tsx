@@ -1,14 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { MOODS, useThemePreferences } from "~/lib/theme";
 import { Icons } from "../icons";
-
-type Mood = "estudio" | "darkroom" | "salon";
-type Theme = "dark" | "light";
-
-const MOODS: { id: Mood; label: string }[] = [
-  { id: "estudio", label: "Estudio · magenta" },
-  { id: "darkroom", label: "Cuarto oscuro · ámbar" },
-  { id: "salon", label: "Salón · refinado" },
-];
 
 interface Props {
   /** Active nav item. Maps to URL pathname. */
@@ -23,39 +15,8 @@ interface Props {
 }
 
 export default function Rail({ current }: Props) {
-  const [mood, setMood] = useState<Mood>("estudio");
-  const [theme, setTheme] = useState<Theme>("dark");
+  const { mood, theme, setMood, toggleTheme } = useThemePreferences();
   const [moodOpen, setMoodOpen] = useState(false);
-
-  // Read persisted values on hydration (the inline <script> in Base.astro
-  // already applies them to <html> before React boots; this just syncs state).
-  useEffect(() => {
-    const m = (document.documentElement.getAttribute("data-mood") ??
-      "estudio") as Mood;
-    const t = (document.documentElement.getAttribute("data-theme") ??
-      "dark") as Theme;
-    setMood(m);
-    setTheme(t);
-  }, []);
-
-  const applyMood = (m: Mood) => {
-    setMood(m);
-    document.documentElement.setAttribute("data-mood", m);
-    try {
-      localStorage.setItem("pf:mood", m);
-    } catch {
-      /* ignore */
-    }
-  };
-  const applyTheme = (t: Theme) => {
-    setTheme(t);
-    document.documentElement.setAttribute("data-theme", t);
-    try {
-      localStorage.setItem("pf:theme", t);
-    } catch {
-      /* ignore */
-    }
-  };
 
   const items: { id: Props["current"]; icon: ReactNode; label: string; href: string }[] = [
     { id: "home", icon: <Icons.Home />, label: "Inicio", href: "/" },
@@ -111,12 +72,12 @@ export default function Rail({ current }: Props) {
                 key={m.id}
                 className="row-check cursor-pointer"
                 onClick={() => {
-                  applyMood(m.id);
+                  setMood(m.id);
                   setMoodOpen(false);
                 }}
               >
                 <input type="radio" checked={mood === m.id} readOnly />
-                <span className="flex-1">{m.label}</span>
+                <span className="flex-1">{m.longLabel}</span>
               </label>
             ))}
           </div>
@@ -124,7 +85,7 @@ export default function Rail({ current }: Props) {
 
         <button
           className="rail-btn"
-          onClick={() => applyTheme(theme === "dark" ? "light" : "dark")}
+          onClick={toggleTheme}
           aria-label={theme === "dark" ? "Modo claro" : "Modo oscuro"}
           title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
         >

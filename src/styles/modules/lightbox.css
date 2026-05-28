@@ -410,3 +410,32 @@
   cursor: pointer;
 }
 
+
+/* Lightbox "processing" / "failed" state: shown for video items whose
+   background transcode hasn't finished yet. Poster image dimmed behind a
+   centered spinner + label. */
+.lb-processing {
+  position: relative;
+  display: inline-block;
+}
+.lb-processing-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  grid-auto-flow: row;
+  color: #f5f3ee;
+  text-align: center;
+  font: 12px var(--f-mono);
+  letter-spacing: 0.04em;
+  padding: 0 24px;
+}
+.lb-processing-overlay .spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #f5f3ee;
+  animation: tile-spin 0.8s linear infinite;
+}

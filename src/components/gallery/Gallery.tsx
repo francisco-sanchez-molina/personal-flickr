@@ -11,10 +11,11 @@
  * Server-rendered API calls (favorite, delete, gallery membership) live here
  * because they need to roll back optimistic state if the network fails.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Photo } from "~/lib/db";
 import BulkActionBar from "../bulk/BulkActionBar";
 import Lightbox from "../lightbox/Lightbox";
+import { useConfirm } from "../ui/ConfirmDialog";
 import PhotoGrid from "./PhotoGrid";
 import { useGridSelection } from "./hooks/useGridSelection";
 
@@ -30,6 +31,7 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
   const [photos, setPhotos] = useState<Photo[]>(initial);
   const [active, setActive] = useState<number | null>(null);
   const isLightboxOpen = active != null;
+  const confirm = useConfirm();
 
   const selection = useGridSelection({
     items: photos,
@@ -77,6 +79,50 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
       window.removeEventListener("photo:memberships-changed", onChange);
   }, [galleryId, orphans]);
 
+  // Poll background-processing videos every 2.5 s until they leave the
+  // 'processing' state. We don't subscribe via SSE/WS because the queue is
+  // small and the user usually has one tab open — polling is the simplest
+  // thing that works behind Cloudflare Tunnel.
+  //
+  // Memoizing the pending-id set means the effect only re-mounts when the
+  // SET of pending ids changes (a video finishes, or a new one is uploaded),
+  // not on every unrelated state update like favoriting another photo.
+  const pendingIdsKey = useMemo(
+    () =>
+      photos
+        .filter((p) => p.processing_status === "processing")
+        .map((p) => p.id)
+        .sort((a, b) => a - b)
+        .join(","),
+    [photos],
+  );
+  useEffect(() => {
+    if (!pendingIdsKey) return;
+    const ids = pendingIdsKey.split(",").map(Number);
+    let cancelled = false;
+    const tick = async () => {
+      for (const id of ids) {
+        if (cancelled) return;
+        try {
+          const res = await fetch(`/api/photos/${id}`);
+          if (!res.ok) continue;
+          const body = (await res.json()) as { photo: Photo | null };
+          if (!body.photo || cancelled) continue;
+          setPhotos((arr) =>
+            arr.map((x) => (x.id === id ? body.photo! : x)),
+          );
+        } catch {
+          /* network blip; try again next tick */
+        }
+      }
+    };
+    const t = setInterval(tick, 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [pendingIdsKey]);
+
   // ←/→/Esc in the lightbox
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -99,8 +145,12 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
   const remove = useCallback(
     async (id: number) => {
       if (galleryId != null) {
-        if (!confirm("¿Quitar esta foto de la galería? (no se borra del disco)"))
-          return;
+        const ok = await confirm({
+          title: "¿Quitar esta foto de la galería?",
+          description: "La foto sigue en el disco; solo deja de pertenecer a esta galería.",
+          confirmLabel: "Quitar",
+        });
+        if (!ok) return;
         const res = await fetch(`/api/galleries/${galleryId}/photos/${id}`, {
           method: "DELETE",
         });
@@ -110,14 +160,20 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
         }
         return;
       }
-      if (!confirm("¿Eliminar esta foto? Se borra el archivo del disco.")) return;
+      const ok = await confirm({
+        title: "¿Eliminar esta foto?",
+        description: "Se borra el archivo del disco. No se puede deshacer.",
+        confirmLabel: "Eliminar",
+        destructive: true,
+      });
+      if (!ok) return;
       const res = await fetch(`/api/photos/${id}`, { method: "DELETE" });
       if (res.ok) {
         setPhotos((p) => p.filter((x) => x.id !== id));
         setActive(null);
       }
     },
-    [galleryId],
+    [galleryId, confirm],
   );
 
   const toggleFavorite = useCallback(
@@ -147,12 +203,12 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
     if (galleryId == null) return;
     const ids = Array.from(selection.selected);
     if (ids.length === 0) return;
-    if (
-      !confirm(
-        `¿Quitar ${ids.length} foto${ids.length === 1 ? "" : "s"} de esta galería?`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: `¿Quitar ${ids.length} foto${ids.length === 1 ? "" : "s"} de esta galería?`,
+      description: "Las fotos siguen en el disco; solo dejan de estar en esta galería.",
+      confirmLabel: "Quitar",
+    });
+    if (!ok) return;
     await Promise.all(
       ids.map((id) =>
         fetch(`/api/galleries/${galleryId}/photos/${id}`, { method: "DELETE" }),
@@ -160,23 +216,24 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
     );
     setPhotos((p) => p.filter((x) => !selection.selected.has(x.id)));
     selection.clear();
-  }, [galleryId, selection]);
+  }, [galleryId, selection, confirm]);
 
   const bulkDelete = useCallback(async () => {
     const ids = Array.from(selection.selected);
     if (ids.length === 0) return;
-    if (
-      !confirm(
-        `¿Eliminar ${ids.length} foto${ids.length === 1 ? "" : "s"} del disco? Esto es irreversible.`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: `¿Eliminar ${ids.length} foto${ids.length === 1 ? "" : "s"} del disco?`,
+      description: "Esto es irreversible.",
+      confirmLabel: "Eliminar",
+      destructive: true,
+    });
+    if (!ok) return;
     await Promise.all(
       ids.map((id) => fetch(`/api/photos/${id}`, { method: "DELETE" })),
     );
     setPhotos((p) => p.filter((x) => !selection.selected.has(x.id)));
     selection.clear();
-  }, [selection]);
+  }, [selection, confirm]);
 
   const bulkFavorite = useCallback(
     async (value: boolean) => {

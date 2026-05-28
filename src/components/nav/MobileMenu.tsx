@@ -3,7 +3,7 @@
  * Sheet primitive (which itself wraps Radix Dialog), so it gets focus trap,
  * body scroll lock and ARIA semantics for free.
  */
-import { useEffect, useState } from "react";
+import { MOODS, useThemePreferences } from "~/lib/theme";
 import { Icons } from "../icons";
 import {
   Sheet,
@@ -15,15 +15,6 @@ import {
   SheetSection,
   SheetTitle,
 } from "../ui/Sheet";
-
-type Mood = "estudio" | "darkroom" | "salon";
-type Theme = "dark" | "light";
-
-const MOODS: { id: Mood; label: string; color: string }[] = [
-  { id: "estudio", label: "Estudio", color: "#FF2D87" },
-  { id: "darkroom", label: "Cuarto oscuro", color: "#FF6A2C" },
-  { id: "salon", label: "Salón", color: "#14120E" },
-];
 
 interface Props {
   open: boolean;
@@ -39,39 +30,7 @@ interface Props {
 }
 
 export default function MobileMenu({ open, onClose, current }: Props) {
-  const [mood, setMood] = useState<Mood>("estudio");
-  const [theme, setTheme] = useState<Theme>("dark");
-
-  useEffect(() => {
-    if (!open) return;
-    const m =
-      (document.documentElement.getAttribute("data-mood") as Mood | null) ??
-      "estudio";
-    const t =
-      (document.documentElement.getAttribute("data-theme") as Theme | null) ??
-      "dark";
-    setMood(m);
-    setTheme(t);
-  }, [open]);
-
-  const applyMood = (m: Mood) => {
-    setMood(m);
-    document.documentElement.setAttribute("data-mood", m);
-    try {
-      localStorage.setItem("pf:mood", m);
-    } catch {
-      /* ignore */
-    }
-  };
-  const applyTheme = (t: Theme) => {
-    setTheme(t);
-    document.documentElement.setAttribute("data-theme", t);
-    try {
-      localStorage.setItem("pf:theme", t);
-    } catch {
-      /* ignore */
-    }
-  };
+  const { mood, theme, setMood, toggleTheme } = useThemePreferences();
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -118,7 +77,7 @@ export default function MobileMenu({ open, onClose, current }: Props) {
             <SheetItem
               key={m.id}
               active={mood === m.id}
-              onClick={() => applyMood(m.id)}
+              onClick={() => setMood(m.id)}
               type="button"
             >
               <span
@@ -133,10 +92,7 @@ export default function MobileMenu({ open, onClose, current }: Props) {
         </SheetSection>
 
         <SheetSection label="Tema">
-          <SheetItem
-            onClick={() => applyTheme(theme === "dark" ? "light" : "dark")}
-            type="button"
-          >
+          <SheetItem onClick={toggleTheme} type="button">
             {theme === "dark" ? <Icons.Sun size={18} /> : <Icons.Moon size={18} />}
             <span>{theme === "dark" ? "Modo claro" : "Modo oscuro"}</span>
           </SheetItem>

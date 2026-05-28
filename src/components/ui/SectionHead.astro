@@ -1,0 +1,28 @@
+---
+/**
+ * Astro version of SectionHead — mirrors the React one for use from .astro
+ * pages that render server-side (no need to ship a React island for a
+ * static header).
+ *
+ *   <SectionHead eyebrow="Subidas recientes" title="Últimas fotos">
+ *     <span class="count-chip" slot="actions">12</span>
+ *   </SectionHead>
+ *
+ * Right-side content goes through the `actions` named slot. The component
+ * keeps the same `.section-head` styling as the rest of the app so visuals
+ * are identical to the React surface.
+ */
+interface Props {
+  eyebrow?: string;
+  title: string;
+}
+const { eyebrow, title } = Astro.props;
+---
+
+<div class="section-head">
+  <div>
+    {eyebrow && <div class="h-eyebrow mb-2">{eyebrow}</div>}
+    <h2>{title}</h2>
+  </div>
+  <slot name="actions" />
+</div>

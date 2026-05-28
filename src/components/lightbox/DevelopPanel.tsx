@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "~/lib/cn";
 import { Icons } from "../icons";
+import ErrorText from "../ui/ErrorText";
 
 export interface DevelopParams {
   brightness: number;
@@ -296,7 +297,7 @@ export default function DevelopPanel({
 
           {error && (
             <div className="sec">
-              <p className="m-0 font-mono text-[12.5px] text-danger">{error}</p>
+              <ErrorText message={error} />
             </div>
           )}
         </aside>

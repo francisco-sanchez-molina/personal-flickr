@@ -2,6 +2,8 @@
 import Base from "~/layouts/Base.astro";
 import Gallery from "~/components/gallery/Gallery.tsx";
 import GalleriesGrid from "~/components/gallery/GalleriesGrid.tsx";
+import EmptyState from "~/components/ui/EmptyState.astro";
+import SectionHead from "~/components/ui/SectionHead.astro";
 import {
   galleryQueries,
   photoQueries,
@@ -171,17 +173,11 @@ function relativeTime(ts: number): string {
           {/* Recent photos */}
           {recentPhotos.length > 0 && (
             <section>
-              <div class="section-head">
-                <div>
-                  <div class="h-eyebrow mb-2">
-                    Subidas recientes
-                  </div>
-                  <h2>Últimas fotos</h2>
-                </div>
-                <span class="count-chip">
+              <SectionHead eyebrow="Subidas recientes" title="Últimas fotos">
+                <span slot="actions" class="count-chip">
                   {recentPhotos.length} de {totalPhotoCount}
                 </span>
-              </div>
+              </SectionHead>
               <Gallery client:load initial={recentPhotos} />
             </section>
           )}
@@ -194,23 +190,14 @@ function relativeTime(ts: number): string {
         />
       ) : view === "tags" && !activeTag ? (
         <section>
-          <div class="section-head">
-            <div>
-              <div class="h-eyebrow mb-2">
-                Organizadas por concepto
-              </div>
-              <h2>Etiquetas</h2>
-            </div>
-            <span class="count-chip">{tags.length} etiquetas</span>
-          </div>
+          <SectionHead eyebrow="Organizadas por concepto" title="Etiquetas">
+            <span slot="actions" class="count-chip">{tags.length} etiquetas</span>
+          </SectionHead>
           {tags.length === 0 ? (
-            <div class="empty">
-              <div class="big serif">Aún no hay etiquetas.</div>
-              <div>
-                Abre una foto y usa la sección "Etiquetas" del panel lateral
-                para añadirlas.
-              </div>
-            </div>
+            <EmptyState
+              title="Aún no hay etiquetas."
+              sub='Abre una foto y usa la sección "Etiquetas" del panel lateral para añadirlas.'
+            />
           ) : (
             <div class="chips max-w-[900px] gap-1.5">
               {tags.map((t) => (
@@ -227,19 +214,13 @@ function relativeTime(ts: number): string {
         </section>
       ) : view === "search" ? (
         <section>
-          <div class="section-head">
-            <div>
-              <div class="h-eyebrow mb-2">
-                Resultados
-              </div>
-              <h2>“{q}”</h2>
-            </div>
-            <span class="count-chip">
+          <SectionHead eyebrow="Resultados" title={`“${q}”`}>
+            <span slot="actions" class="count-chip">
               {photos.length} {photos.length === 1 ? "foto" : "fotos"} ·{" "}
               {galleries.length}{" "}
               {galleries.length === 1 ? "galería" : "galerías"}
             </span>
-          </div>
+          </SectionHead>
           <a href="/" class="btn ghost sm mb-[18px] inline-flex">
             ← Limpiar
           </a>
@@ -264,10 +245,7 @@ function relativeTime(ts: number): string {
               <Gallery client:load initial={photos} />
             </div>
           ) : galleries.length === 0 ? (
-            <div class="empty">
-              <div class="big serif">Sin resultados.</div>
-              <div>Prueba con otra palabra.</div>
-            </div>
+            <EmptyState title="Sin resultados." sub="Prueba con otra palabra." />
           ) : null}
         </section>
       ) : (
@@ -311,26 +289,26 @@ function relativeTime(ts: number): string {
             </p>
           )}
           {photos.length === 0 ? (
-            <div class="empty">
-              <div class="big serif">
-                {view === "favorites"
+            <EmptyState
+              title={
+                view === "favorites"
                   ? "Aún no tienes favoritas."
                   : view === "orphans"
                     ? "Todo está clasificado."
                     : view === "tags"
                       ? "Sin fotos."
-                      : "Aún no hay fotos."}
-              </div>
-              <div>
-                {view === "favorites"
+                      : "Aún no hay fotos."
+              }
+              sub={
+                view === "favorites"
                   ? "Toca la estrella en cualquier foto para guardarla aquí."
                   : view === "orphans"
                     ? "Cada foto está en al menos una galería."
                     : view === "tags"
                       ? "Esta etiqueta no está en ninguna foto."
-                      : "Usa Subir fotos para empezar."}
-              </div>
-            </div>
+                      : "Usa Subir fotos para empezar."
+              }
+            />
           ) : (
             <Gallery
               client:load

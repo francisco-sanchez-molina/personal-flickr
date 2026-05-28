@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icons } from "../icons";
+import { useConfirm } from "../ui/ConfirmDialog";
 import {
   Dialog,
   DialogBody,
@@ -10,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/Dialog";
+import ErrorText from "../ui/ErrorText";
 
 interface Gallery {
   id: number;
@@ -32,6 +34,7 @@ export default function GalleryHeader({
   const [name, setName] = useState(gallery.name);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   const save = async () => {
     setBusy(true);
@@ -58,12 +61,13 @@ export default function GalleryHeader({
   };
 
   const remove = async () => {
-    if (
-      !confirm(
-        `¿Borrar la galería "${gallery.name}"? Las fotos no se eliminan, solo dejan de pertenecer a esta galería.`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: `¿Borrar la galería "${gallery.name}"?`,
+      description: "Las fotos no se eliminan, solo dejan de pertenecer a esta galería.",
+      confirmLabel: "Borrar",
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/galleries/${gallery.id}`, {
@@ -133,11 +137,7 @@ export default function GalleryHeader({
                   placeholder="Nombre"
                 />
               </div>
-              {error && (
-                <p className="m-0 font-mono text-[12.5px] text-danger">
-                  {error}
-                </p>
-              )}
+              <ErrorText message={error} />
             </form>
           </DialogBody>
           <DialogFooter>

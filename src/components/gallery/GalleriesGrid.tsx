@@ -1,6 +1,7 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { cn } from "~/lib/cn";
-import { Icons } from "../icons";
+import EmptyState from "../ui/EmptyState";
+import NewGalleryForm from "./NewGalleryForm";
 
 interface GallerySummary {
   id: number;
@@ -33,37 +34,6 @@ export default function GalleriesGrid({
   featured?: boolean;
 }) {
   const [galleries, setGalleries] = useState<GallerySummary[]>(initial);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const create = useCallback(async () => {
-    const name = newName.trim();
-    if (!name) return;
-    setError(null);
-    try {
-      const res = await fetch("/api/galleries", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
-      setGalleries((g) => [
-        {
-          ...body.gallery,
-          photo_count: 0,
-          cover_name: null,
-          cover_developed_at: null,
-        },
-        ...g,
-      ]);
-      setNewName("");
-      setCreating(false);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  }, [newName]);
 
   return (
     <section>
@@ -72,60 +42,31 @@ export default function GalleriesGrid({
           <div className="h-eyebrow mb-2">Colecciones temáticas</div>
           <h2>Galerías</h2>
         </div>
-        <div className="row">
+        <div className="row min-w-[260px] items-center gap-2">
           <span className="count-chip">
             {galleries.length} galerías · {orphanCount} sin clasificar
           </span>
-          {!creating ? (
-            <button className="btn primary sm" onClick={() => setCreating(true)}>
-              <Icons.Plus size={13} /> Nueva galería
-            </button>
-          ) : (
-            <form
-              className="flex gap-1.5"
-              onSubmit={(e) => {
-                e.preventDefault();
-                create();
-              }}
-            >
-              <div className="search min-w-[180px] px-2.5 py-1.5">
-                <input
-                  autoFocus
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Nombre"
-                  maxLength={80}
-                  className="text-xs"
-                />
-              </div>
-              <button type="submit" className="btn primary sm">
-                Crear
-              </button>
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() => {
-                  setCreating(false);
-                  setNewName("");
-                  setError(null);
-                }}
-              >
-                ✕
-              </button>
-            </form>
-          )}
+          <NewGalleryForm
+            onCreated={(g) =>
+              setGalleries((arr) => [
+                {
+                  ...g,
+                  photo_count: 0,
+                  cover_name: null,
+                  cover_developed_at: null,
+                },
+                ...arr,
+              ])
+            }
+          />
         </div>
       </div>
 
-      {error && (
-        <p className="m-0 mb-3 font-mono text-[12.5px] text-danger">{error}</p>
-      )}
-
       {galleries.length === 0 && orphanCount === 0 ? (
-        <div className="empty">
-          <div className="big serif">Aún no hay galerías.</div>
-          <div>Crea una para empezar a organizar.</div>
-        </div>
+        <EmptyState
+          title="Aún no hay galerías."
+          sub="Crea una para empezar a organizar."
+        />
       ) : (
         <div className="gallery-grid">
           {orphanCount > 0 && (

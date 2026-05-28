@@ -214,6 +214,7 @@ docker exec <container> tar xzf /tmp/backup.tgz -C /
 | `VIDEO_MAX_DIM`  | `1280`     | Lado más largo del vídeo transcodificado (1280 ≈ 720p)     |
 | `VIDEO_CRF`      | `23`       | Calidad H.264 (libx264). Menos = mejor calidad / más peso  |
 | `VIDEO_AUDIO_KBPS` | `128`    | Bitrate del audio AAC                                      |
+| `VIDEO_CONCURRENCY` | `1`     | Cuántos ffmpeg simultáneos en la cola de transcode         |
 | `DATA_DIR`       | `./data`   | Dónde se guarda todo (en Docker se setea a `/data`)        |
 | `HOST`           | `0.0.0.0`  | Bind host (Astro Node adapter)                             |
 | `PORT`           | `4321`     | Puerto (Astro Node adapter)                                |
@@ -235,14 +236,23 @@ docker exec <container> tar xzf /tmp/backup.tgz -C /
 
 ### Vídeo
 
+El upload responde rápido (~500 ms) y el transcode pesado corre en segundo plano:
+
 ```
 upload tmp/  →  ffprobe (width, height, duration, rotation)
+              → ffmpeg -ss 1 -frames:v 1 (poster) → sharp 480 webp
+              → INSERT photo (processing_status='processing', size_bytes=0)
+              → respond 200 OK con la fila
+              ▼  background queue (concurrencia 1 por defecto)
               → ffmpeg -vf scale=W:H -c:v libx264 -crf 23 -preset medium
                        -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart
               → data/photos/{name}.mp4
-              → ffmpeg -ss 1 -frames:v 1 (poster) → sharp 480 webp
-              → data/thumbs/{name}.mp4   (contenido webp, MIME se sirve correcto)
+              → UPDATE photo (status='ready', size_bytes=..., developed_at=now)
 ```
+
+Mientras `processing_status='processing'` la UI muestra spinner + "Procesando vídeo…" sobre el poster, y el lightbox no monta el `<video>` (el archivo aún no existe en disco). El cliente hace polling de `/api/photos/{id}` cada 2.5 s hasta que la fila transiciona a `ready` o `failed`. Si el server se reinicia con jobs en vuelo, las filas huérfanas se marcan `failed` al arrancar (la cola es in-process, no persistente).
+
+Concurrencia configurable con `VIDEO_CONCURRENCY` (default 1 — para personal use está bien, sube a 2-3 si tu host tiene cores y subes muchos clips a la vez).
 
 Métricas típicas con los defaults (720p / CRF 23):
 - vídeo 1080p del iPhone (~17 Mbps) → 720p ~1.5-2.5 Mbps → **~10-15× más pequeño**

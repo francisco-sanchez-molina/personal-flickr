@@ -1,0 +1,22 @@
+---
+/**
+ * Astro version of the EmptyState block — used from .astro pages where we
+ * don't want to ship a React island for a static "no items" message.
+ *
+ *   <EmptyState title="Sin resultados." sub="Prueba con otra palabra." />
+ *
+ * The `<slot>` lets callers pass complex content (anchors, code) instead of
+ * a plain string when needed.
+ */
+interface Props {
+  title: string;
+  sub?: string;
+}
+const { title, sub } = Astro.props;
+---
+
+<div class="empty">
+  <div class="big serif">{title}</div>
+  {sub && <div>{sub}</div>}
+  <slot />
+</div>

@@ -11,9 +11,8 @@
  */
 import { spawn } from "node:child_process";
 import fs from "node:fs";
-import path from "node:path";
 import sharp from "sharp";
-import { config, paths } from "./config";
+import { config } from "./config";
 
 const VIDEO_EXTS = new Set([
   ".mp4",
@@ -123,59 +122,24 @@ function fitDims(w: number, h: number, maxDim: number): { tw: number; th: number
   return { tw: tw - (tw % 2), th: th - (th % 2) };
 }
 
-export interface ProcessedVideo {
-  /** Path on disk to the transcoded MP4 (caller moves/renames it). */
-  outPath: string;
-  /** 480px webp poster frame, ready to write under data/thumbs/. */
-  thumbBuffer: Buffer;
+export interface VideoMeta {
+  /** Output (post-rotation) width — what we'll display. */
   width: number;
+  /** Output (post-rotation) height. */
   height: number;
   durationMs: number;
-  sizeBytes: number;
-  mime: "video/mp4";
 }
 
-/**
- * Transcode `inputPath` to a streamable 720p H.264/AAC MP4 + a webp poster.
- * The MP4 lands in `tmpDir` — caller is responsible for moving it to the
- * final location (and unlinking on error). The thumb is returned in-memory.
- */
-export async function processVideo(inputPath: string): Promise<ProcessedVideo> {
-  const meta = await probe(inputPath);
-  const { tw, th } = fitDims(meta.width, meta.height, config.videoMaxDim);
+/** Fast probe + poster-frame extraction (~500 ms-1 s). Run sync at upload time. */
+export async function probeAndPoster(
+  inputPath: string,
+): Promise<{ meta: VideoMeta; thumbBuffer: Buffer; targetW: number; targetH: number }> {
+  const probed = await probe(inputPath);
+  const { tw, th } = fitDims(probed.width, probed.height, config.videoMaxDim);
 
-  const outPath = path.join(
-    paths.tmpDir,
-    `vid-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`,
-  );
-
-  // Single-pass CRF encode. `-vf scale=tw:th` keeps aspect (we precomputed it).
-  // `-movflags +faststart` puts the moov atom at the front so the browser can
-  // start playing before the whole file downloads. `yuv420p` ensures broad
-  // browser compatibility (some HEVC inputs are yuv420p10le which Safari
-  // accepts but many browsers don't decode in MP4).
-  await run("ffmpeg", [
-    "-hide_banner",
-    "-loglevel", "error",
-    "-y",
-    "-i", inputPath,
-    "-map_metadata", "-1",
-    "-vf", `scale=${tw}:${th}:flags=lanczos`,
-    "-c:v", "libx264",
-    "-preset", "medium",
-    "-crf", String(config.videoCRF),
-    "-pix_fmt", "yuv420p",
-    "-profile:v", "high",
-    "-level", "4.0",
-    "-c:a", "aac",
-    "-b:a", `${config.videoAudioKbps}k`,
-    "-ac", "2",
-    "-movflags", "+faststart",
-    outPath,
-  ]);
-
-  // Poster frame: grab one frame ~1s in (or t=0 for very short clips).
-  const posterT = Math.min(1, Math.max(0, meta.durationMs / 1000 / 4));
+  // One frame at ~1 s (or earlier for very short clips). `-ss` BEFORE `-i` is
+  // a "seek-fast" — much cheaper than seek-decode for poster grabs.
+  const posterT = Math.min(1, Math.max(0, probed.durationMs / 1000 / 4));
   const rawPoster = await runStdout("ffmpeg", [
     "-hide_banner",
     "-loglevel", "error",
@@ -193,15 +157,48 @@ export async function processVideo(inputPath: string): Promise<ProcessedVideo> {
     .webp({ quality: 75 })
     .toBuffer();
 
-  const stat = fs.statSync(outPath);
-
   return {
-    outPath,
+    meta: { width: tw, height: th, durationMs: probed.durationMs },
     thumbBuffer,
-    width: tw,
-    height: th,
-    durationMs: meta.durationMs,
-    sizeBytes: stat.size,
-    mime: "video/mp4",
+    targetW: tw,
+    targetH: th,
   };
+}
+
+/**
+ * Transcode to 720p H.264/AAC MP4. Slow — call from the background queue,
+ * not from a request handler.
+ *
+ * `-movflags +faststart` puts the moov atom at the front so the browser can
+ * start playing before the whole file downloads. `yuv420p` ensures broad
+ * browser compatibility (some HEVC inputs are yuv420p10le which Safari
+ * accepts but many browsers won't decode in MP4).
+ */
+export async function transcodeVideo(
+  inputPath: string,
+  outPath: string,
+  targetW: number,
+  targetH: number,
+): Promise<{ sizeBytes: number }> {
+  await run("ffmpeg", [
+    "-hide_banner",
+    "-loglevel", "error",
+    "-y",
+    "-i", inputPath,
+    "-map_metadata", "-1",
+    "-vf", `scale=${targetW}:${targetH}:flags=lanczos`,
+    "-c:v", "libx264",
+    "-preset", "medium",
+    "-crf", String(config.videoCRF),
+    "-pix_fmt", "yuv420p",
+    "-profile:v", "high",
+    "-level", "4.0",
+    "-c:a", "aac",
+    "-b:a", `${config.videoAudioKbps}k`,
+    "-ac", "2",
+    "-movflags", "+faststart",
+    outPath,
+  ]);
+  const stat = fs.statSync(outPath);
+  return { sizeBytes: stat.size };
 }

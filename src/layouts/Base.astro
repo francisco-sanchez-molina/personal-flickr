@@ -2,6 +2,7 @@
 import "~/styles/global.css";
 import Rail from "~/components/nav/Rail.tsx";
 import Topbar from "~/components/nav/Topbar.tsx";
+import ConfirmHost from "~/components/ui/ConfirmDialog.tsx";
 import UploaderModal from "~/components/upload/UploaderModal.tsx";
 
 interface Props {
@@ -90,5 +91,6 @@ const authed = Astro.locals.user != null;
     }
 
     {authed && <UploaderModal client:load />}
+    {authed && <ConfirmHost client:load />}
   </body>
 </html>

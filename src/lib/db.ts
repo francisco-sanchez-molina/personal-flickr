@@ -60,6 +60,24 @@ db.exec(
 // 'duration_ms' is null for photos.
 addColumnIfMissing("photos", "kind", "TEXT NOT NULL DEFAULT 'photo'");
 addColumnIfMissing("photos", "duration_ms", "INTEGER");
+
+// Background processing state. 'ready' is the only state for photos (their
+// upload pipeline is synchronous). For videos: 'processing' while ffmpeg is
+// encoding in the background, 'ready' once the MP4 lands on disk, 'failed'
+// if encoding crashed. Defensive recovery on boot below: any 'processing'
+// rows left behind by a crash are flipped to 'failed' (the in-process queue
+// has no persistence).
+addColumnIfMissing(
+  "photos",
+  "processing_status",
+  "TEXT NOT NULL DEFAULT 'ready'",
+);
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_photos_status ON photos(processing_status)`,
+);
+db.exec(
+  `UPDATE photos SET processing_status = 'failed' WHERE processing_status = 'processing'`,
+);
 // Backfill developed_at = uploaded_at for old rows
 db.exec(
   `UPDATE photos SET developed_at = uploaded_at WHERE developed_at = 0`,
@@ -139,6 +157,8 @@ export interface Photo {
   kind: "photo" | "video";
   /** Duration in ms for videos, null for photos. */
   duration_ms: number | null;
+  /** 'ready' | 'processing' | 'failed'. Always 'ready' for photos. */
+  processing_status: "ready" | "processing" | "failed";
 }
 
 const stmts = {
@@ -152,10 +172,10 @@ const stmts = {
        (name, mime, width, height, size_bytes, uploaded_at,
         developed_at, develop_params, has_base, original_ext,
         camera, lens, fstop, shutter, iso, focal, taken_at, gps_lat, gps_lng,
-        kind, duration_ms)
+        kind, duration_ms, processing_status)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?)`,
+             ?, ?, ?)`,
   ),
   updateForReplace: db.prepare(
     `UPDATE photos
@@ -163,8 +183,16 @@ const stmts = {
            developed_at = ?, develop_params = ?, has_base = ?, original_ext = ?,
            camera = ?, lens = ?, fstop = ?, shutter = ?, iso = ?, focal = ?,
            taken_at = ?, gps_lat = ?, gps_lng = ?,
-           kind = ?, duration_ms = ?
+           kind = ?, duration_ms = ?, processing_status = ?
      WHERE name = ?`,
+  ),
+  // Mark a video row as ready once the background transcode finishes (also
+  // refreshes size_bytes + developed_at so the client invalidates its cached
+  // thumb/MP4 via the ?v= query string).
+  updateProcessed: db.prepare(
+    `UPDATE photos
+       SET size_bytes = ?, developed_at = ?, processing_status = ?
+     WHERE id = ?`,
   ),
   updateExif: db.prepare(
     `UPDATE photos
@@ -230,6 +258,7 @@ export interface PhotoUpsert {
   gps_lng: number | null;
   kind: "photo" | "video";
   duration_ms: number | null;
+  processing_status: "ready" | "processing" | "failed";
 }
 
 export const photoQueries = {
@@ -259,6 +288,7 @@ export const photoQueries = {
       p.gps_lng,
       p.kind,
       p.duration_ms,
+      p.processing_status,
     );
     return Number(r.lastInsertRowid);
   },
@@ -284,8 +314,17 @@ export const photoQueries = {
       p.gps_lng,
       p.kind,
       p.duration_ms,
+      p.processing_status,
       p.name,
     );
+  },
+  updateProcessed: (
+    id: number,
+    sizeBytes: number,
+    developedAt: number,
+    status: "ready" | "failed",
+  ) => {
+    stmts.updateProcessed.run(sizeBytes, developedAt, status, id);
   },
   updateExif: (
     id: number,

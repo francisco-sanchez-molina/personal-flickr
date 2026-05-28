@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "~/lib/cn";
-import { Icons } from "../icons";
+import NewGalleryForm from "../gallery/NewGalleryForm";
+import ErrorText from "../ui/ErrorText";
 import {
   Popover,
   PopoverContent,
@@ -38,8 +39,6 @@ export default function GalleryPicker({
   const [all, setAll] = useState<Gallery[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
 
@@ -103,35 +102,20 @@ export default function GalleryPicker({
     }
   };
 
-  const createNew = async () => {
-    const name = newName.trim();
-    if (!name) return;
-    setError(null);
+  // After creating a new gallery via the inline form, auto-select it and
+  // persist the new membership set in the same trip.
+  const onGalleryCreated = async (g: Gallery) => {
+    const next = new Set([...selected, g.id]);
+    setAll((arr) => [g, ...arr]);
+    setSelected(next);
+    setPendingId(g.id);
     try {
-      const res = await fetch("/api/galleries", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
-      const newId: number = body.gallery.id;
-      const next = new Set([...selected, newId]);
-      setAll((g) => [body.gallery, ...g]);
-      setSelected(next);
-      setNewName("");
-      setCreating(false);
-      setPendingId(newId);
-      try {
-        await persistSet(next);
-      } catch (e: unknown) {
-        setSelected(selected);
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setPendingId((cur) => (cur === newId ? null : cur));
-      }
+      await persistSet(next);
     } catch (e: unknown) {
+      setSelected(selected);
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPendingId((cur) => (cur === g.id ? null : cur));
     }
   };
 
@@ -171,51 +155,9 @@ export default function GalleryPicker({
 
         <div className="-mx-1 my-2 h-px bg-line" />
 
-        {creating ? (
-          <form
-            className="flex gap-1.5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              createNew();
-            }}
-          >
-            <div className="search flex-1 px-2 py-1">
-              <input
-                autoFocus
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Nombre"
-                maxLength={80}
-              />
-            </div>
-            <button type="submit" className="btn primary sm">
-              Crear
-            </button>
-            <button
-              type="button"
-              className="btn ghost sm"
-              onClick={() => {
-                setCreating(false);
-                setNewName("");
-              }}
-            >
-              ✕
-            </button>
-          </form>
-        ) : (
-          <button
-            className="btn ghost sm w-full justify-center border-dashed border-line-2"
-            onClick={() => setCreating(true)}
-          >
-            <Icons.Plus size={13} /> Nueva galería
-          </button>
-        )}
+        <NewGalleryForm onCreated={onGalleryCreated} variant="compact" />
 
-        {error && (
-          <p className="m-0 mt-2.5 font-mono text-xs text-danger">
-            {error}
-          </p>
-        )}
+        <ErrorText message={error} className="mt-2.5" />
       </PopoverContent>
     </Popover>
   );

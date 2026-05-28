@@ -2,6 +2,7 @@
 import Base from "~/layouts/Base.astro";
 import Gallery from "~/components/gallery/Gallery.tsx";
 import GalleryHeader from "~/components/gallery/GalleryHeader.tsx";
+import EmptyState from "~/components/ui/EmptyState.astro";
 import { galleryQueries } from "~/lib/db";
 
 const slug = Astro.params.slug;
@@ -97,10 +98,10 @@ const totalSize = photos.reduce((acc, p) => acc + (p.size_bytes ?? 0), 0);
 
     {
       photos.length === 0 ? (
-        <div class="empty">
-          <div class="big serif">Galería vacía.</div>
-          <div>Usa Subir fotos arriba — se añadirán aquí automáticamente.</div>
-        </div>
+        <EmptyState
+          title="Galería vacía."
+          sub="Usa Subir fotos arriba — se añadirán aquí automáticamente."
+        />
       ) : (
         <Gallery client:load initial={photos} galleryId={gallery.id} />
       )

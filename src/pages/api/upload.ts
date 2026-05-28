@@ -1,3 +1,4 @@
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { APIRoute } from "astro";
@@ -21,7 +22,8 @@ import {
   targetFilename,
   thumbPath,
 } from "~/lib/storage";
-import { isVideoExt, isVideoMime, processVideo } from "~/lib/video";
+import { isVideoExt, isVideoMime, probeAndPoster, transcodeVideo } from "~/lib/video";
+import { enqueueVideoJob } from "~/lib/video-queue";
 
 export const config = { runtime: "nodejs" } as const;
 
@@ -94,29 +96,42 @@ export const POST: APIRoute = async ({ request }) => {
   const buf = Buffer.from(await file.arrayBuffer());
   await fs.writeFile(tmpFile, buf);
 
+  // The photo branch always deletes tmpFile in `finally`. The video branch
+  // moves the tmp file into a pending- location for the background job, so
+  // it sets this flag to skip the delete.
+  let tmpFileConsumed = false;
   try {
     const now = Date.now();
 
     if (isVideo) {
-      // Video pipeline: ffprobe → ffmpeg transcode (H.264/AAC, 720p, +faststart)
-      // → poster-frame webp thumb. No base / develop / EXIF (we strip metadata
-      // on transcode to keep file size predictable).
-      const v = await processVideo(tmpFile);
-      try {
-        await fs.rename(v.outPath, photoPath(outName));
-      } catch {
-        // EXDEV when tmp lives on a different fs than the data volume.
-        await fs.copyFile(v.outPath, photoPath(outName));
-        await fs.unlink(v.outPath).catch(() => {});
-      }
-      await fs.writeFile(thumbPath(outName), v.thumbBuffer);
+      // Fast path: probe + extract a single poster frame (~500 ms-1 s) so we
+      // can return immediately with a usable DB row + thumb. The actual H.264
+      // transcode is enqueued and runs in the background (see video-queue).
+      const { meta: vmeta, thumbBuffer, targetW, targetH } =
+        await probeAndPoster(tmpFile);
+
+      await fs.writeFile(thumbPath(outName), thumbBuffer);
+
+      // Keep the original around for the background job. We use a stable
+      // location under tmp/ keyed by name; the job removes it when done.
+      const pendingPath = path.join(
+        paths.tmpDir,
+        `pending-${Date.now()}-${Math.random().toString(36).slice(2)}${ext || ".bin"}`,
+      );
+      await fs.rename(tmpFile, pendingPath).catch(async () => {
+        await fs.copyFile(tmpFile, pendingPath);
+      });
 
       const meta = {
         name: outName,
-        mime: v.mime,
-        width: v.width,
-        height: v.height,
-        size_bytes: v.sizeBytes,
+        mime: "video/mp4",
+        width: vmeta.width,
+        height: vmeta.height,
+        // Placeholder: will be overwritten with the encoded byte count when
+        // the background job finishes. Showing the original size while
+        // processing would be misleading, so we store 0 and let the UI
+        // render "—" until ready.
+        size_bytes: 0,
         uploaded_at: now,
         developed_at: now,
         develop_params: null,
@@ -132,7 +147,8 @@ export const POST: APIRoute = async ({ request }) => {
         gps_lat: null,
         gps_lng: null,
         kind: "video" as const,
-        duration_ms: v.durationMs,
+        duration_ms: vmeta.durationMs,
+        processing_status: "processing" as const,
       };
       if (collides && decision === "replace") {
         photoQueries.upsertReplace(meta);
@@ -140,6 +156,42 @@ export const POST: APIRoute = async ({ request }) => {
         photoQueries.insert(meta);
       }
       const saved = photoQueries.byName(outName);
+
+      // Schedule the background transcode. We close over `saved.id` so the
+      // worker can update the right row when it finishes. `tmpFile` is now
+      // the pending location (we renamed it); skip the finally-unlink.
+      const photoId = saved!.id;
+      const finalPath = photoPath(outName);
+      enqueueVideoJob(async () => {
+        const tmpOut = path.join(
+          paths.tmpDir,
+          `enc-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`,
+        );
+        try {
+          const { sizeBytes } = await transcodeVideo(
+            pendingPath,
+            tmpOut,
+            targetW,
+            targetH,
+          );
+          try {
+            await fs.rename(tmpOut, finalPath);
+          } catch {
+            await fs.copyFile(tmpOut, finalPath);
+            await fs.unlink(tmpOut).catch(() => {});
+          }
+          photoQueries.updateProcessed(photoId, sizeBytes, Date.now(), "ready");
+        } catch (err) {
+          console.error(`[video] transcode failed for #${photoId}:`, err);
+          photoQueries.updateProcessed(photoId, 0, Date.now(), "failed");
+          fsSync.rmSync(tmpOut, { force: true });
+        } finally {
+          fsSync.rmSync(pendingPath, { force: true });
+        }
+      });
+
+      // Tell the finally block we already moved the tmp file out.
+      tmpFileConsumed = true;
       return Response.json({ ok: true, photo: saved });
     }
 
@@ -188,6 +240,9 @@ export const POST: APIRoute = async ({ request }) => {
       // Video support: this endpoint only handles still photos today.
       kind: "photo" as const,
       duration_ms: null,
+      // Photos are processed inline (sharp is fast enough), so they're
+      // already "ready" by the time we insert the row.
+      processing_status: "ready" as const,
     };
     if (collides && decision === "replace") {
       photoQueries.upsertReplace(meta);
@@ -203,6 +258,8 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 500, headers: { "content-type": "application/json" } },
     );
   } finally {
-    fs.unlink(tmpFile).catch(() => {});
+    if (!tmpFileConsumed) {
+      fs.unlink(tmpFile).catch(() => {});
+    }
   }
 };

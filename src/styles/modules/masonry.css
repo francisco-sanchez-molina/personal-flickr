@@ -178,3 +178,40 @@
   pointer-events: none;
 }
 
+/* Background-processing overlay: shown on video tiles while ffmpeg is
+   transcoding. Sits over the poster thumb. */
+.tile .processing-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  grid-auto-flow: row;
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  color: #f5f3ee;
+  pointer-events: none;
+}
+.tile .processing-overlay.failed {
+  background: rgba(120, 30, 30, 0.55);
+}
+.tile .processing-label {
+  font: 11.5px var(--f-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tile .spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #f5f3ee;
+  animation: tile-spin 0.8s linear infinite;
+}
+@keyframes tile-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
