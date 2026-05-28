@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Maskable variant. PWA spec asks for ≥10% safe area around the logo so
+    Android can crop the icon to circles / rounded squares / squircles
+    without clipping detail. The background is solid (no rx) and the
+    circles are tightened so they sit inside the safe zone.
+  -->
+  <rect width="512" height="512" fill="#0b0b0d" />
+  <g transform="translate(256 256)">
+    <circle cx="-50" cy="0" r="88" fill="#FF2D87" />
+    <circle cx="50" cy="0" r="88" fill="#FF2D87" fill-opacity="0.55" />
+  </g>
+</svg>

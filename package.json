@@ -10,6 +10,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "tunnel": "node scripts/tunnel.mjs",
+    "build:icons": "node scripts/build-icons.mjs",
     "share": "concurrently -k -n app,tunnel -c magenta,cyan \"pnpm dev\" \"pnpm tunnel\"",
     "share:prod": "concurrently -k -n app,tunnel -c magenta,cyan \"pnpm start\" \"pnpm tunnel\"",
     "docker:build": "docker build -t personal-flickr:local .",

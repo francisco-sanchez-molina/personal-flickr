@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Personal Flickr brand mark. Two overlapping circles in the magenta
+    accent — same shape as <Icons.Logo> in the app, scaled up to fill
+    a 512² canvas with an editorial dark background and iOS-style
+    rounded corners.
+  -->
+  <rect width="512" height="512" rx="96" fill="#0b0b0d" />
+  <g transform="translate(256 256)">
+    <circle cx="-64" cy="0" r="112" fill="#FF2D87" />
+    <circle cx="64" cy="0" r="112" fill="#FF2D87" fill-opacity="0.55" />
+  </g>
+</svg>
