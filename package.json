@@ -9,6 +9,9 @@
     "start": "node ./dist/server/entry.mjs",
     "preview": "astro preview",
     "astro": "astro",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "tunnel": "node scripts/tunnel.mjs",
     "build:icons": "node scripts/build-icons.mjs",
     "share": "concurrently -k -n app,tunnel -c magenta,cyan \"pnpm dev\" \"pnpm tunnel\"",
@@ -39,10 +42,12 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@tailwindcss/vite": "^4.3.0",
+    "@vitest/coverage-v8": "^4.1.7",
     "cloudflared": "^0.7.1",
     "concurrently": "^9.2.1",
     "tailwindcss": "^4.3.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
