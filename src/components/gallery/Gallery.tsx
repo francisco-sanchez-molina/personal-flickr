@@ -11,14 +11,26 @@
  * Server-rendered API calls (favorite, delete, gallery membership) live here
  * because they need to roll back optimistic state if the network fails.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { Photo } from "~/lib/db";
 import BulkActionBar from "../bulk/BulkActionBar";
-import Lightbox from "../lightbox/Lightbox";
 import Button from "../ui/Button";
 import { useConfirm } from "../ui/ConfirmDialog";
 import PhotoGrid from "./PhotoGrid";
 import { useGridSelection } from "./hooks/useGridSelection";
+
+// Lightbox is heavy (zoom-pan-pinch, develop, info panel, gallery picker)
+// and only mounts when a thumbnail is clicked — keep it out of the
+// initial Gallery chunk.
+const Lightbox = lazy(() => import("../lightbox/Lightbox"));
 
 interface Props {
   initial: Photo[];
@@ -338,18 +350,20 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
       />
 
       {active != null && photos[active] && (
-        <Lightbox
-          photos={photos}
-          index={active}
-          onIndex={setActive}
-          onClose={() => setActive(null)}
-          onDelete={() => remove(photos[active].id)}
-          onToggleFavorite={() => toggleFavorite(photos[active].id)}
-          // Develop / rotate may flip width/height (90° / 270°) — pass the
-          // full updated row so dimensions, develop_params and developed_at
-          // all stay in sync.
-          onPhotoUpdated={(updated) => updatePhoto(updated.id, updated)}
-        />
+        <Suspense fallback={null}>
+          <Lightbox
+            photos={photos}
+            index={active}
+            onIndex={setActive}
+            onClose={() => setActive(null)}
+            onDelete={() => remove(photos[active].id)}
+            onToggleFavorite={() => toggleFavorite(photos[active].id)}
+            // Develop / rotate may flip width/height (90° / 270°) — pass
+            // the full updated row so dimensions, develop_params and
+            // developed_at all stay in sync.
+            onPhotoUpdated={(updated) => updatePhoto(updated.id, updated)}
+          />
+        </Suspense>
       )}
 
       {selection.selected.size > 0 && (

@@ -5,35 +5,20 @@ import { Icons } from "../icons";
 import Button from "../ui/Button";
 import ErrorText from "../ui/ErrorText";
 import IconButton from "../ui/IconButton";
+import {
+  DEFAULT_DEVELOP,
+  paramsToCSSFilter,
+  paramsToCSSTransform,
+  type DevelopParams,
+} from "./develop-params";
 
-export interface DevelopParams {
-  brightness: number;
-  contrast: number;
-  saturation: number;
-  hue: number;
-  rotate: 0 | 90 | 180 | 270;
-}
-
-export const DEFAULT_DEVELOP: DevelopParams = {
-  brightness: 1,
-  contrast: 1,
-  saturation: 1,
-  hue: 0,
-  rotate: 0,
+// Re-export so existing consumers can keep `import { ... } from "./DevelopPanel"`.
+export {
+  DEFAULT_DEVELOP,
+  paramsToCSSFilter,
+  paramsToCSSTransform,
+  type DevelopParams,
 };
-
-/** Build the equivalent CSS filter string so the preview matches the server render. */
-export function paramsToCSSFilter(p: DevelopParams): string {
-  const parts: string[] = [];
-  if (p.brightness !== 1) parts.push(`brightness(${p.brightness})`);
-  if (p.contrast !== 1) parts.push(`contrast(${p.contrast})`);
-  if (p.saturation !== 1) parts.push(`saturate(${p.saturation})`);
-  if (p.hue !== 0) parts.push(`hue-rotate(${p.hue}deg)`);
-  return parts.join(" ");
-}
-export function paramsToCSSTransform(p: DevelopParams): string {
-  return p.rotate ? `rotate(${p.rotate}deg)` : "";
-}
 
 // ── Presets (mapped to the param space we actually persist on the server) ──
 // The design has more knobs (shadows, highlights, temp, tint, vignette, grain,

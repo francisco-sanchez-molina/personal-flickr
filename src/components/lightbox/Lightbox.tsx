@@ -4,7 +4,7 @@
  * parent owns the active index and lifecycle callbacks (close, delete,
  * toggle-favorite, developed).
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   TransformComponent,
   TransformWrapper,
@@ -16,15 +16,17 @@ import { baseUrl, fmtDate, fmtDuration, fmtSize, isVideo, photoUrl, thumbUrl } f
 import { Icons } from "../icons";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
-import DevelopPanel, {
-  DEFAULT_DEVELOP,
-  type DevelopParams,
-} from "./DevelopPanel";
+import { DEFAULT_DEVELOP, type DevelopParams } from "./develop-params";
 import GalleryPicker from "./GalleryPicker";
 import LightboxInfo from "./LightboxInfo";
 import { useFullscreen } from "./hooks/useFullscreen";
 import { usePreloadNeighbors } from "./hooks/usePreloadNeighbors";
 import { useSwipeNav } from "./hooks/useSwipeNav";
+
+// DevelopPanel is a sizeable client island (sliders, presets, blob diffing)
+// that only renders when the user clicks "Revelar". Lazy-load it so the
+// initial lightbox open doesn't pay its ~6 KB gz cost.
+const DevelopPanel = lazy(() => import("./DevelopPanel"));
 
 function parseDevelopParams(json: string | null): DevelopParams {
   if (!json) return DEFAULT_DEVELOP;
@@ -488,16 +490,18 @@ export default function Lightbox({
       </div>
 
       {developOpen && (
-        <DevelopPanel
-          photoId={photo.id}
-          baseUrl={baseUrl(photo)}
-          initial={parseDevelopParams(photo.develop_params)}
-          onSaved={(updated) => {
-            onPhotoUpdated(updated);
-            setDevelopOpen(false);
-          }}
-          onClose={() => setDevelopOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <DevelopPanel
+            photoId={photo.id}
+            baseUrl={baseUrl(photo)}
+            initial={parseDevelopParams(photo.develop_params)}
+            onSaved={(updated) => {
+              onPhotoUpdated(updated);
+              setDevelopOpen(false);
+            }}
+            onClose={() => setDevelopOpen(false)}
+          />
+        </Suspense>
       )}
     </div>
   );
