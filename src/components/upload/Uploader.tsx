@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icons } from "../icons";
+import Button from "../ui/Button";
 import ErrorText from "../ui/ErrorText";
+import IconButton from "../ui/IconButton";
 
 interface UploadedPhoto {
   id: number;
@@ -562,13 +564,9 @@ function AggregateBar({
           {stats.inFlight > 0 && stats.etaSecs != null ? (
             <>queda {fmtDuration(stats.etaSecs)}</>
           ) : isComplete ? (
-            <button
-              className="btn ghost sm"
-              onClick={onClearDone}
-              type="button"
-            >
+            <Button variant="ghost" size="sm" onClick={onClearDone}>
               Limpiar terminadas
-            </button>
+            </Button>
           ) : (
             <>·</>
           )}
@@ -641,25 +639,25 @@ function QueueRow({
         )}
         {status === "conflict" && (
           <div className="up-conflict">
-            <button className="btn sm" onClick={onReplace}>
+            <Button size="sm" onClick={onReplace}>
               Reemplazar
-            </button>
-            <button className="btn sm primary" onClick={onRename}>
+            </Button>
+            <Button size="sm" variant="primary" onClick={onRename}>
               Renombrar → {item.suggested}
-            </button>
-            <button className="btn sm ghost" onClick={onDismiss}>
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onDismiss}>
               Cancelar
-            </button>
+            </Button>
           </div>
         )}
         {status === "duplicate" && (
           <div className="up-conflict">
-            <button className="btn sm primary" onClick={onForceDuplicate}>
+            <Button size="sm" variant="primary" onClick={onForceDuplicate}>
               Subir igualmente
-            </button>
-            <button className="btn sm ghost" onClick={onDismiss}>
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onDismiss}>
               Cancelar
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -682,13 +680,13 @@ function QueueRow({
           "…"
         )}
         {(status === "done" || status === "error") && (
-          <button
-            className="iconbtn ml-2 inline-grid h-6 w-6 align-middle"
+          <IconButton
+            className="ml-2 inline-grid h-6 w-6 align-middle"
             onClick={onDismiss}
             aria-label="Descartar"
           >
             <Icons.Close size={12} />
-          </button>
+          </IconButton>
         )}
       </div>
     </div>

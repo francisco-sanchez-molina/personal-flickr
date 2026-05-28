@@ -5,6 +5,7 @@
  */
 import { MOODS, useThemePreferences } from "~/lib/theme";
 import { Icons } from "../icons";
+import IconButton from "../ui/IconButton";
 import {
   Sheet,
   SheetClose,
@@ -40,9 +41,9 @@ export default function MobileMenu({ open, onClose, current, username }: Props) 
         <SheetHeader>
           <SheetTitle>Menú</SheetTitle>
           <SheetClose asChild>
-            <button className="iconbtn" aria-label="Cerrar">
+            <IconButton aria-label="Cerrar">
               <Icons.Close size={16} />
-            </button>
+            </IconButton>
           </SheetClose>
         </SheetHeader>
         <SheetDescription>Navegación y ajustes de Personal Flickr</SheetDescription>

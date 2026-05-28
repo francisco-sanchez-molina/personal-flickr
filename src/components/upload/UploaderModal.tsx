@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/Dialog";
+import IconButton from "../ui/IconButton";
 
 interface CurrentGallery {
   id: number;
@@ -76,9 +77,9 @@ export default function UploaderModal() {
         <DialogHeader>
           <DialogTitle>Subir fotos y vídeos</DialogTitle>
           <DialogClose asChild>
-            <button className="iconbtn" aria-label="Cerrar">
+            <IconButton aria-label="Cerrar">
               <Icons.Close size={15} />
-            </button>
+            </IconButton>
           </DialogClose>
         </DialogHeader>
         <DialogDescription>

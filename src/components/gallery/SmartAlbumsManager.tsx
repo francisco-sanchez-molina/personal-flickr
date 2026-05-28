@@ -6,9 +6,11 @@
  */
 import { useState } from "react";
 import { Icons } from "../icons";
+import Button from "../ui/Button";
 import { useConfirm } from "../ui/ConfirmDialog";
 import EmptyState from "../ui/EmptyState";
 import ErrorText from "../ui/ErrorText";
+import IconButton from "../ui/IconButton";
 import SmartAlbumBuilder, { type SmartFilter } from "./SmartAlbumBuilder";
 
 interface SmartAlbum {
@@ -100,9 +102,9 @@ export default function SmartAlbumsManager({
   return (
     <>
       <div className="mb-3 flex justify-end">
-        <button className="btn primary sm" onClick={openCreate}>
+        <Button variant="primary" size="sm" onClick={openCreate}>
           <Icons.Plus size={13} /> Nuevo smart album
-        </button>
+        </Button>
       </div>
 
       {albums.length === 0 ? (
@@ -126,22 +128,20 @@ export default function SmartAlbumsManager({
                   {filterSummary(a.filter)}
                 </div>
               </a>
-              <button
-                className="iconbtn"
+              <IconButton
                 onClick={() => openEdit(a)}
                 aria-label={`Editar ${a.name}`}
                 title="Editar"
               >
                 <Icons.Sliders size={14} />
-              </button>
-              <button
-                className="iconbtn"
+              </IconButton>
+              <IconButton
                 onClick={() => remove(a)}
                 aria-label={`Borrar ${a.name}`}
                 title="Borrar"
               >
                 <Icons.Trash size={14} />
-              </button>
+              </IconButton>
             </div>
           ))}
         </div>

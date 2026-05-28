@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Photo } from "~/lib/db";
 import { cn } from "~/lib/cn";
 import { Icons } from "../icons";
+import Button from "../ui/Button";
 import ErrorText from "../ui/ErrorText";
+import IconButton from "../ui/IconButton";
 
 export interface DevelopParams {
   brightness: number;
@@ -183,14 +185,13 @@ export default function DevelopPanel({
           <div className="meta">Ajusta y guarda — los cambios sustituyen la foto actual</div>
         </div>
         <div className="lb-actions">
-          <button
-            className={cn("btn", compare && "primary")}
+          <Button
+            variant={compare ? "primary" : "default"}
             onClick={() => setCompare((v) => !v)}
           >
             <Icons.Compare size={14} /> {compare ? "Editado" : "Antes / Después"}
-          </button>
-          <button
-            className="btn"
+          </Button>
+          <Button
             onClick={() => {
               setParams(DEFAULT_DEVELOP);
               setActivePreset("orig");
@@ -198,13 +199,13 @@ export default function DevelopPanel({
             disabled={isDefault}
           >
             <Icons.Reset size={14} /> Reset
-          </button>
-          <button className="btn primary" onClick={save} disabled={saving}>
+          </Button>
+          <Button variant="primary" onClick={save} loading={saving}>
             {saving ? "Guardando…" : "Guardar"}
-          </button>
-          <button className="iconbtn" onClick={onClose} aria-label="Cerrar">
+          </Button>
+          <IconButton onClick={onClose} aria-label="Cerrar">
             <Icons.Close size={15} />
-          </button>
+          </IconButton>
         </div>
       </header>
 
@@ -292,12 +293,12 @@ export default function DevelopPanel({
                 <span className="num">{params.rotate}°</span>
               </div>
               <div className="rot-pair">
-                <button className="btn sm" onClick={() => rotateBy(-90)}>
+                <Button size="sm" onClick={() => rotateBy(-90)}>
                   <Icons.RotL size={13} /> −90°
-                </button>
-                <button className="btn sm" onClick={() => rotateBy(90)}>
+                </Button>
+                <Button size="sm" onClick={() => rotateBy(90)}>
                   <Icons.RotR size={13} /> +90°
-                </button>
+                </Button>
               </div>
             </div>
           </div>

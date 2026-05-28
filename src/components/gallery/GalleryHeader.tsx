@@ -15,6 +15,8 @@ import {
   DialogTitle,
 } from "../ui/Dialog";
 import ErrorText from "../ui/ErrorText";
+import IconButton from "../ui/IconButton";
+import TextField from "../ui/TextField";
 
 interface Gallery {
   id: number;
@@ -181,9 +183,9 @@ export default function GalleryHeader({
           <DialogHeader>
             <DialogTitle>Renombrar galería</DialogTitle>
             <DialogClose asChild>
-              <button className="iconbtn" aria-label="Cerrar">
+              <IconButton aria-label="Cerrar">
                 <Icons.Close size={15} />
-              </button>
+              </IconButton>
             </DialogClose>
           </DialogHeader>
           <DialogDescription>
@@ -198,32 +200,28 @@ export default function GalleryHeader({
                 save();
               }}
             >
-              <div className="search p-2.5">
-                <input
-                  autoFocus
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  maxLength={80}
-                  placeholder="Nombre"
-                />
-              </div>
+              <TextField
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={80}
+                placeholder="Nombre"
+              />
               <ErrorText message={error} />
             </form>
           </DialogBody>
           <DialogFooter>
             <DialogClose asChild>
-              <button type="button" className="btn ghost">
-                Cancelar
-              </button>
+              <Button variant="ghost">Cancelar</Button>
             </DialogClose>
-            <button
+            <Button
               type="submit"
               form="rename-form"
-              className="btn primary"
-              disabled={busy}
+              variant="primary"
+              loading={busy}
             >
               Guardar
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -316,9 +314,9 @@ function CoverPickerDialog({
         <DialogHeader>
           <DialogTitle>Elegir portada</DialogTitle>
           <DialogClose asChild>
-            <button className="iconbtn" aria-label="Cerrar">
+            <IconButton aria-label="Cerrar">
               <Icons.Close size={15} />
-            </button>
+            </IconButton>
           </DialogClose>
         </DialogHeader>
         <DialogDescription>
@@ -378,7 +376,7 @@ function CoverPickerDialog({
         </DialogBody>
         <DialogFooter>
           <DialogClose asChild>
-            <button className="btn ghost">Cerrar</button>
+            <Button variant="ghost">Cerrar</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
@@ -461,9 +459,9 @@ function MoveGalleryDialog({
         <DialogHeader>
           <DialogTitle>Mover galería</DialogTitle>
           <DialogClose asChild>
-            <button className="iconbtn" aria-label="Cerrar">
+            <IconButton aria-label="Cerrar">
               <Icons.Close size={15} />
-            </button>
+            </IconButton>
           </DialogClose>
         </DialogHeader>
         <DialogDescription>
@@ -511,7 +509,7 @@ function MoveGalleryDialog({
         </DialogBody>
         <DialogFooter>
           <DialogClose asChild>
-            <button className="btn ghost">Cerrar</button>
+            <Button variant="ghost">Cerrar</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

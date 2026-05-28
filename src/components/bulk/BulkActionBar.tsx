@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import NewGalleryForm from "../gallery/NewGalleryForm";
 import { Icons } from "../icons";
+import Button from "../ui/Button";
 import ErrorText from "../ui/ErrorText";
 import {
   Dialog,
@@ -12,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/Dialog";
+import IconButton from "../ui/IconButton";
 
 interface Gallery {
   id: number;
@@ -53,11 +55,11 @@ export default function BulkActionBar({
             seleccionada{count === 1 ? "" : "s"}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button className="btn primary" onClick={() => setPickerOpen(true)}>
+            <Button variant="primary" onClick={() => setPickerOpen(true)}>
               <Icons.Folder size={14} /> Añadir a galería
-            </button>
-            <button
-              className="btn text-accent"
+            </Button>
+            <Button
+              className="text-accent"
               onClick={() => onFavorite(!allFavorite)}
             >
               {allFavorite ? (
@@ -69,20 +71,20 @@ export default function BulkActionBar({
                   <Icons.StarFill size={14} /> Favorito
                 </>
               )}
-            </button>
+            </Button>
             {galleryId != null && (
-              <button className="btn" onClick={onRemoveFromGallery}>
+              <Button onClick={onRemoveFromGallery}>
                 Quitar de esta galería
-              </button>
+              </Button>
             )}
             {galleryId == null && (
-              <button className="btn danger" onClick={onDelete}>
+              <Button variant="danger" onClick={onDelete}>
                 <Icons.Trash size={14} /> Eliminar
-              </button>
+              </Button>
             )}
-            <button className="btn ghost" onClick={onCancel}>
+            <Button variant="ghost" onClick={onCancel}>
               Cancelar
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -185,9 +187,9 @@ function BulkGalleryPicker({
             Añadir {photoIds.length} foto{photoIds.length === 1 ? "" : "s"}
           </DialogTitle>
           <DialogClose asChild>
-            <button className="iconbtn" aria-label="Cerrar">
+            <IconButton aria-label="Cerrar">
               <Icons.Close size={15} />
-            </button>
+            </IconButton>
           </DialogClose>
         </DialogHeader>
         <DialogDescription>Seleccionar galerías destino</DialogDescription>
@@ -221,17 +223,18 @@ function BulkGalleryPicker({
         </DialogBody>
         <DialogFooter>
           <DialogClose asChild>
-            <button className="btn ghost">Cancelar</button>
+            <Button variant="ghost">Cancelar</Button>
           </DialogClose>
-          <button
-            className="btn primary"
+          <Button
+            variant="primary"
             onClick={save}
-            disabled={saving || loading || selected.size === 0}
+            loading={saving}
+            disabled={loading || selected.size === 0}
           >
             {saving
               ? "Añadiendo…"
               : `Añadir a ${selected.size} galería${selected.size === 1 ? "" : "s"}`}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Icons } from "../icons";
+import Button from "../ui/Button";
+import IconButton from "../ui/IconButton";
 import MobileMenu from "./MobileMenu";
 
 /**
@@ -73,9 +75,9 @@ export default function Topbar({ title, breadcrumb, current, username }: Props) 
                 className="flex min-w-0 items-center gap-2.5"
               >
                 {!isLast && c.href ? (
-                  <a className="btn ghost sm" href={c.href}>
+                  <Button variant="ghost" size="sm" href={c.href}>
                     {c.name}
-                  </a>
+                  </Button>
                 ) : (
                   <span className="serif overflow-hidden text-[18px] text-ellipsis whitespace-nowrap text-ink">
                     {c.name}
@@ -107,31 +109,23 @@ export default function Topbar({ title, breadcrumb, current, username }: Props) 
         <kbd>⌘K</kbd>
       </form>
       <div className="topbar-spacer" />
-      <button
-        className="btn primary"
-        onClick={openUploader}
-        aria-label="Subir fotos"
-      >
+      <Button variant="primary" onClick={openUploader} aria-label="Subir fotos">
         <Icons.Upload size={15} />
         <span className="lbl-d">Subir fotos</span>
-      </button>
-      <form
-        method="POST"
-        action="/api/auth/logout"
-        className="lbl-d m-0"
-      >
-        <button type="submit" className="btn ghost sm">
+      </Button>
+      <form method="POST" action="/api/auth/logout" className="lbl-d m-0">
+        <Button type="submit" variant="ghost" size="sm">
           Salir
-        </button>
+        </Button>
       </form>
       {/* Mobile-only hamburger that opens the drawer with nav + mood + theme + logout */}
-      <button
-        className="iconbtn menu-toggle"
+      <IconButton
+        className="menu-toggle"
         onClick={() => setMenuOpen(true)}
         aria-label="Menú"
       >
         <Icons.Menu size={16} />
-      </button>
+      </IconButton>
 
       <MobileMenu
         open={menuOpen}

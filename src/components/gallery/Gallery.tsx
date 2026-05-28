@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Photo } from "~/lib/db";
 import BulkActionBar from "../bulk/BulkActionBar";
 import Lightbox from "../lightbox/Lightbox";
+import Button from "../ui/Button";
 import { useConfirm } from "../ui/ConfirmDialog";
 import PhotoGrid from "./PhotoGrid";
 import { useGridSelection } from "./hooks/useGridSelection";
@@ -307,20 +308,21 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
         <div className="flex items-center gap-1.5">
           {selection.selectMode ? (
             <>
-              <button className="btn sm" onClick={selection.selectAll}>
+              <Button size="sm" onClick={selection.selectAll}>
                 Todas
-              </button>
-              <button className="btn ghost sm" onClick={selection.clear}>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={selection.clear}>
                 Cancelar
-              </button>
+              </Button>
             </>
           ) : (
-            <button
-              className="btn ghost sm"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={selection.enterSelectMode}
             >
               Seleccionar
-            </button>
+            </Button>
           )}
         </div>
       </div>

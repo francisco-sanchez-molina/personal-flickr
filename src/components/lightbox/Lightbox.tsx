@@ -14,6 +14,8 @@ import type { Photo } from "~/lib/db";
 import { cn } from "~/lib/cn";
 import { baseUrl, fmtDate, fmtDuration, fmtSize, isVideo, photoUrl, thumbUrl } from "~/lib/photo";
 import { Icons } from "../icons";
+import Button from "../ui/Button";
+import IconButton from "../ui/IconButton";
 import DevelopPanel, {
   DEFAULT_DEVELOP,
   type DevelopParams,
@@ -248,67 +250,65 @@ export default function Lightbox({
           </div>
         </div>
         <div className="lb-actions relative">
-          <button
-            className={cn("iconbtn", isFav && "text-accent")}
+          <IconButton
+            className={isFav ? "text-accent" : undefined}
             onClick={onToggleFavorite}
             title={isFav ? "Quitar favorita (F)" : "Marcar favorita (F)"}
             aria-pressed={isFav}
+            aria-label={isFav ? "Quitar favorita" : "Marcar favorita"}
           >
             {isFav ? <Icons.StarFill size={15} /> : <Icons.Star size={15} />}
-          </button>
+          </IconButton>
           {photo.has_base === 1 && (
             <>
-              <button
-                className="iconbtn"
+              <IconButton
                 onClick={() => rotate(-90)}
                 disabled={rotating}
                 aria-label="Rotar 90° a la izquierda"
                 title="Rotar 90° a la izquierda"
               >
                 <Icons.RotL size={15} />
-              </button>
-              <button
-                className="iconbtn"
+              </IconButton>
+              <IconButton
                 onClick={() => rotate(90)}
                 disabled={rotating}
                 aria-label="Rotar 90° a la derecha"
                 title="Rotar 90° a la derecha"
               >
                 <Icons.RotR size={15} />
-              </button>
-              <button className="btn" onClick={() => setDevelopOpen(true)}>
+              </IconButton>
+              <Button onClick={() => setDevelopOpen(true)}>
                 <Icons.Sliders size={14} /> Revelar
-              </button>
+              </Button>
             </>
           )}
           <GalleryPicker photoId={photo.id}>
-            <button className="btn">
+            <Button>
               <Icons.Folder size={14} /> Galerías
-            </button>
+            </Button>
           </GalleryPicker>
           {photo.processing_status === "ready" && (
-            <a
-              className="btn"
+            <Button
               href={photoUrl(photo)}
               download={photo.name}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
               <Icons.Download size={14} /> Descargar
-            </a>
+            </Button>
           )}
-          <button className="btn danger" onClick={onDelete}>
+          <Button variant="danger" onClick={onDelete}>
             <Icons.Trash size={14} /> Eliminar
-          </button>
-          <button
-            className={cn("iconbtn", showInfo && "active")}
+          </Button>
+          <IconButton
+            active={showInfo}
             onClick={() => setShowInfo((v) => !v)}
             title="Info (I)"
             aria-pressed={showInfo}
+            aria-label="Mostrar información"
           >
             <Icons.Info size={15} />
-          </button>
-          <button
-            className="iconbtn"
+          </IconButton>
+          <IconButton
             onClick={toggleFullscreen}
             title={
               isFullscreen
@@ -316,16 +316,17 @@ export default function Lightbox({
                 : "Pantalla completa (F)"
             }
             aria-pressed={isFullscreen}
+            aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
           >
             {isFullscreen ? (
               <Icons.FullscreenExit size={15} />
             ) : (
               <Icons.Fullscreen size={15} />
             )}
-          </button>
-          <button className="iconbtn" onClick={onClose} title="Cerrar (Esc)">
+          </IconButton>
+          <IconButton onClick={onClose} title="Cerrar (Esc)" aria-label="Cerrar">
             <Icons.Close size={15} />
-          </button>
+          </IconButton>
         </div>
       </header>
 

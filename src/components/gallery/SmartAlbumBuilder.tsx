@@ -9,6 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import { Icons } from "../icons";
+import Button from "../ui/Button";
 import {
   Dialog,
   DialogBody,
@@ -20,6 +21,8 @@ import {
   DialogTitle,
 } from "../ui/Dialog";
 import ErrorText from "../ui/ErrorText";
+import IconButton from "../ui/IconButton";
+import TextField from "../ui/TextField";
 
 export interface SmartFilter {
   camera?: string;
@@ -206,9 +209,9 @@ export default function SmartAlbumBuilder({
             {editing ? "Editar smart album" : "Nuevo smart album"}
           </DialogTitle>
           <DialogClose asChild>
-            <button className="iconbtn" aria-label="Cerrar">
+            <IconButton aria-label="Cerrar">
               <Icons.Close size={15} />
-            </button>
+            </IconButton>
           </DialogClose>
         </DialogHeader>
         <DialogDescription>
@@ -225,50 +228,44 @@ export default function SmartAlbumBuilder({
             }}
           >
             <Row label="Nombre">
-              <div className="search px-2.5 py-1.5">
-                <input
-                  autoFocus
-                  value={form.name}
-                  onChange={(e) => set("name", e.target.value)}
-                  maxLength={80}
-                  placeholder='ej. "ISO alto sin galería"'
-                />
-              </div>
+              <TextField
+                autoFocus
+                value={form.name}
+                onChange={(e) => set("name", e.target.value)}
+                maxLength={80}
+                placeholder='ej. "ISO alto sin galería"'
+              />
             </Row>
 
             <Row label="Cámara">
-              <div className="search px-2.5 py-1.5">
-                <input
-                  value={form.camera}
-                  onChange={(e) => set("camera", e.target.value)}
-                  maxLength={80}
-                  placeholder="ej. Canon EOS RP"
-                />
-              </div>
+              <TextField
+                value={form.camera}
+                onChange={(e) => set("camera", e.target.value)}
+                maxLength={80}
+                placeholder="ej. Canon EOS RP"
+              />
             </Row>
 
             <Row label="Objetivo">
-              <div className="search px-2.5 py-1.5">
-                <input
-                  value={form.lens}
-                  onChange={(e) => set("lens", e.target.value)}
-                  maxLength={120}
-                  placeholder="ej. RF 50mm F1.8"
-                />
-              </div>
+              <TextField
+                value={form.lens}
+                onChange={(e) => set("lens", e.target.value)}
+                maxLength={120}
+                placeholder="ej. RF 50mm F1.8"
+              />
             </Row>
 
             <Row label="Tipo">
               <div className="flex gap-1.5">
                 {(["", "photo", "video"] as const).map((k) => (
-                  <button
+                  <Button
                     key={k}
-                    type="button"
+                    size="sm"
+                    variant={form.kind === k ? "primary" : "ghost"}
                     onClick={() => set("kind", k)}
-                    className={`btn sm ${form.kind === k ? "primary" : "ghost"}`}
                   >
                     {k === "" ? "Cualquiera" : k === "photo" ? "Foto" : "Vídeo"}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </Row>
@@ -334,18 +331,16 @@ export default function SmartAlbumBuilder({
         </DialogBody>
         <DialogFooter>
           <DialogClose asChild>
-            <button type="button" className="btn ghost">
-              Cancelar
-            </button>
+            <Button variant="ghost">Cancelar</Button>
           </DialogClose>
-          <button
+          <Button
             type="submit"
             form="smart-form"
-            className="btn primary"
-            disabled={busy}
+            variant="primary"
+            loading={busy}
           >
             {busy ? "Guardando…" : "Guardar"}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -392,24 +387,22 @@ function RangePair({
 }) {
   return (
     <div className="flex gap-2">
-      <div className="search flex-1 px-2.5 py-1.5">
-        <input
-          type={type}
-          value={from}
-          onChange={(e) => onFromChange(e.target.value)}
-          placeholder={placeholderFrom}
-          step={step}
-        />
-      </div>
-      <div className="search flex-1 px-2.5 py-1.5">
-        <input
-          type={type}
-          value={to}
-          onChange={(e) => onToChange(e.target.value)}
-          placeholder={placeholderTo}
-          step={step}
-        />
-      </div>
+      <TextField
+        type={type}
+        value={from}
+        onChange={(e) => onFromChange(e.target.value)}
+        placeholder={placeholderFrom}
+        step={step}
+        containerClassName="flex-1"
+      />
+      <TextField
+        type={type}
+        value={to}
+        onChange={(e) => onToChange(e.target.value)}
+        placeholder={placeholderTo}
+        step={step}
+        containerClassName="flex-1"
+      />
     </div>
   );
 }
