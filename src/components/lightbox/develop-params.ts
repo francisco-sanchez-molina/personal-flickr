@@ -11,6 +11,13 @@ export interface DevelopParams {
   contrast: number;
   saturation: number;
   hue: number;
+  /**
+   * Warm/vintage tone, 0 = neutral … 1 = full sepia. Previews via CSS
+   * `sepia()` and renders via sharp `.recomb()` with the *same*
+   * interpolated matrix, so the live preview matches the saved file
+   * pixel-for-pixel (see processor.ts `sepiaMatrix`).
+   */
+  warmth: number;
   rotate: 0 | 90 | 180 | 270;
 }
 
@@ -19,6 +26,7 @@ export const DEFAULT_DEVELOP: DevelopParams = {
   contrast: 1,
   saturation: 1,
   hue: 0,
+  warmth: 0,
   rotate: 0,
 };
 
@@ -29,6 +37,10 @@ export function paramsToCSSFilter(p: DevelopParams): string {
   if (p.contrast !== 1) parts.push(`contrast(${p.contrast})`);
   if (p.saturation !== 1) parts.push(`saturate(${p.saturation})`);
   if (p.hue !== 0) parts.push(`hue-rotate(${p.hue}deg)`);
+  // Append last so the order matches the sharp pipeline (recomb runs
+  // after modulate). CSS sepia uses the canonical matrix we replicate.
+  // Truthy check also guards legacy params where warmth is undefined.
+  if (p.warmth) parts.push(`sepia(${p.warmth})`);
   return parts.join(" ");
 }
 

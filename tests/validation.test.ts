@@ -16,8 +16,15 @@ describe("DevelopParamsSchema", () => {
       contrast: 1,
       saturation: 1,
       hue: 0,
+      warmth: 0,
       rotate: 0,
     });
+  });
+
+  it("clamps warmth to 0..1", () => {
+    expect(DevelopParamsSchema.parse({ warmth: 0.5 }).warmth).toBe(0.5);
+    expect(() => DevelopParamsSchema.parse({ warmth: 2 })).toThrow();
+    expect(() => DevelopParamsSchema.parse({ warmth: -0.1 })).toThrow();
   });
 
   it("clamps via min/max — out-of-range fails", () => {

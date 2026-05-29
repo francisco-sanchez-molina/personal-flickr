@@ -30,6 +30,8 @@ export interface DevelopParams {
   saturation: number;
   /** hue rotation in degrees. CSS: hue-rotate() */
   hue: number;
+  /** warm/vintage tone. 0 = neutral, 1 = full sepia. CSS: sepia() */
+  warmth: number;
   /** rotation in degrees, in 90° steps. */
   rotate: 0 | 90 | 180 | 270;
 }
@@ -39,6 +41,7 @@ export const DEFAULT_DEVELOP: DevelopParams = {
   contrast: 1,
   saturation: 1,
   hue: 0,
+  warmth: 0,
   rotate: 0,
 };
 
@@ -48,8 +51,35 @@ export function isDefaultDevelop(p: DevelopParams): boolean {
     p.contrast === 1 &&
     p.saturation === 1 &&
     p.hue === 0 &&
+    p.warmth === 0 &&
     p.rotate === 0
   );
+}
+
+/**
+ * The 3×3 colour matrix CSS `sepia(amount)` applies, interpolated between
+ * identity (amount 0) and the canonical sepia matrix (amount 1). We feed
+ * the *same* matrix to sharp's `.recomb()` so the live CSS preview and the
+ * saved file are pixel-identical — the whole point of the develop panel.
+ *
+ * Canonical matrix per the Filter Effects spec:
+ *   https://www.w3.org/TR/filter-effects-1/#sepiaEquivalent
+ */
+function sepiaMatrix(
+  amount: number,
+): [[number, number, number], [number, number, number], [number, number, number]] {
+  const a = Math.max(0, Math.min(1, amount));
+  const S = [
+    [0.393, 0.769, 0.189],
+    [0.349, 0.686, 0.168],
+    [0.272, 0.534, 0.131],
+  ];
+  const lerp = (i: number, j: number) => (i === j ? 1 : 0) * (1 - a) + S[i][j] * a;
+  return [
+    [lerp(0, 0), lerp(0, 1), lerp(0, 2)],
+    [lerp(1, 0), lerp(1, 1), lerp(1, 2)],
+    [lerp(2, 0), lerp(2, 1), lerp(2, 2)],
+  ];
 }
 
 /** Run a command and resolve when it exits 0, reject otherwise. */
@@ -196,6 +226,10 @@ export async function applyDevelop(
         saturation: params.saturation,
         hue: params.hue,
       });
+    }
+    if (params.warmth && params.warmth !== 0) {
+      // Same matrix CSS `sepia()` uses → preview matches the saved file.
+      s = s.recomb(sepiaMatrix(params.warmth));
     }
     return s;
   };

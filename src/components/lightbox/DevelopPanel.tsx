@@ -21,10 +21,10 @@ export {
 };
 
 // ── Presets (mapped to the param space we actually persist on the server) ──
-// The design has more knobs (shadows, highlights, temp, tint, vignette, grain,
-// sharpness) — those are presented as sliders for the visual style but their
-// values are stored as ephemeral local state and don't reach the backend yet.
-// What DOES round-trip: brightness / contrast / saturation / hue / rotate.
+// Every control rendered here round-trips to the backend: brightness,
+// contrast, saturation, hue, warmth (sepia) and rotation. Each previews
+// via a CSS filter whose equivalent we reproduce in sharp on save, so what
+// you see while dragging is what gets written to disk.
 
 const PRESETS: {
   id: string;
@@ -127,6 +127,7 @@ export default function DevelopPanel({
     params.contrast === 1 &&
     params.saturation === 1 &&
     params.hue === 0 &&
+    params.warmth === 0 &&
     params.rotate === 0;
 
   const applyPreset = (id: string) => {
@@ -267,6 +268,15 @@ export default function DevelopPanel({
               fmt={(v) => `${v.toFixed(0)}°`}
               onChange={(v) => setParams((p) => ({ ...p, hue: v }))}
             />
+            <Slider
+              name="Calidez"
+              val={params.warmth}
+              min={0}
+              max={0.8}
+              step={0.01}
+              fmt={(v) => `${(v * 100).toFixed(0)}%`}
+              onChange={(v) => setParams((p) => ({ ...p, warmth: v }))}
+            />
           </div>
 
           <div className="sec">
@@ -330,8 +340,9 @@ function Slider({
         value={val}
         onChange={(e) => onChange(Number(e.target.value))}
         onDoubleClick={() => {
-          // Reset this slider to neutral
-          const neutral = name === "Tonalidad (Hue)" ? 0 : 1;
+          // Reset this slider to neutral. Hue and Calidez are 0-neutral;
+          // the gain-style sliders (brightness/contrast/saturation) are 1.
+          const neutral = name === "Tonalidad (Hue)" || name === "Calidez" ? 0 : 1;
           onChange(neutral);
         }}
       />
@@ -353,9 +364,15 @@ function paramsToPreset(p: DevelopParams): string {
     // Also ensure non-recipe knobs are at defaults
     if (match) {
       const recipeKeys = Object.keys(preset.recipe);
-      for (const k of ["brightness", "contrast", "saturation", "hue"] as const) {
+      for (const k of [
+        "brightness",
+        "contrast",
+        "saturation",
+        "hue",
+        "warmth",
+      ] as const) {
         if (!recipeKeys.includes(k)) {
-          const def = k === "hue" ? 0 : 1;
+          const def = k === "hue" || k === "warmth" ? 0 : 1;
           if (Math.abs(p[k] - def) > 0.02) {
             match = false;
             break;

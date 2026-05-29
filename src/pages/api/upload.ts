@@ -47,6 +47,7 @@ function parseDevelopParams(raw: unknown): DevelopParams {
       contrast: clamp(obj.contrast, 0.5, 2, 1),
       saturation: clamp(obj.saturation, 0, 2, 1),
       hue: clamp(obj.hue, -180, 180, 0),
+      warmth: clamp(obj.warmth, 0, 1, 0),
       rotate,
     };
   } catch {

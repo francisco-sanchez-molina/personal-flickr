@@ -43,6 +43,7 @@ export const DevelopParamsSchema = z
     contrast: z.number().min(0.5).max(2).default(1),
     saturation: z.number().min(0).max(2).default(1),
     hue: z.number().min(-180).max(180).default(0),
+    warmth: z.number().min(0).max(1).default(0),
     rotate: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).default(0),
   })
   .partial()
@@ -51,6 +52,7 @@ export const DevelopParamsSchema = z
     contrast: v.contrast ?? 1,
     saturation: v.saturation ?? 1,
     hue: v.hue ?? 0,
+    warmth: v.warmth ?? 0,
     rotate: (v.rotate ?? 0) as 0 | 90 | 180 | 270,
   }));
 

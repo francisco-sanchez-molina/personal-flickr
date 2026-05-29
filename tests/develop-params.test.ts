@@ -26,9 +26,26 @@ describe("paramsToCSSFilter", () => {
         contrast: 0.9,
         saturation: 1.3,
         hue: 30,
+        warmth: 0,
         rotate: 0,
       }),
     ).toBe("brightness(1.1) contrast(0.9) saturate(1.3) hue-rotate(30deg)");
+  });
+
+  it("appends sepia() last for warmth", () => {
+    expect(paramsToCSSFilter({ ...DEFAULT_DEVELOP, warmth: 0.3 })).toBe(
+      "sepia(0.3)",
+    );
+    expect(
+      paramsToCSSFilter({ ...DEFAULT_DEVELOP, saturation: 1.2, warmth: 0.5 }),
+    ).toBe("saturate(1.2) sepia(0.5)");
+  });
+
+  it("omits sepia when warmth is 0 or undefined (legacy params)", () => {
+    expect(paramsToCSSFilter({ ...DEFAULT_DEVELOP, warmth: 0 })).toBe("");
+    // Legacy params persisted before `warmth` existed.
+    const legacy = { brightness: 1, contrast: 1, saturation: 1, hue: 0, rotate: 0 };
+    expect(paramsToCSSFilter(legacy as never)).toBe("");
   });
 
   it("ignores rotation (that's a transform, not a filter)", () => {
@@ -63,6 +80,7 @@ describe("DEFAULT_DEVELOP shape", () => {
       contrast: 1,
       saturation: 1,
       hue: 0,
+      warmth: 0,
       rotate: 0,
     });
   });

@@ -36,6 +36,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     contrast: 1,
     saturation: 1,
     hue: 0,
+    warmth: 0,
     rotate: 0 as const,
   };
 
