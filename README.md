@@ -15,6 +15,8 @@
 
 ## Features
 
+> Inventario completo y trazable (con backlog priorizado) en **[`FEATURES.md`](./FEATURES.md)**. Lo de abajo son los titulares.
+
 - 🔐 **Login usuario + contraseña** (env vars) + cookie firmada HMAC + rate-limit 5 intentos/min/IP
 - 📤 **Upload drag&drop** con detección de colisión por nombre (Reemplazar / Renombrar / Cancelar)
 - 📸 **Soporta RAW** de cámara: CR2, CR3, NEF, ARW, DNG, RAF, ORF, RW2
@@ -24,6 +26,8 @@
 - 🎚 **Panel de revelado** con sliders (brillo, contraste, saturación, hue, rotar) — preview en vivo con CSS filters, save aplica el mismo pipeline en `sharp`
 - 🔄 **Re-revelado no-destructivo**: el JPEG embebido se preserva como "base"; puedes volver a abrir Revelar sin perder calidad
 - 🖼 **Lightbox** con pinch-zoom, swipe entre fotos, doble-tap, navegación con teclado
+- 🔗 **Enlaces públicos por foto** (sin login), revocables y con contador de vistas
+- 🗂 **Galerías, sub-galerías, etiquetas y smart albums** + búsqueda global y favoritas
 - 🌐 **Cloudflare Tunnel embebido** (`pnpm share`) para exponerlo sin abrir puertos ni tocar firewall
 - 🐳 **Dockerfile multi-stage** listo para Coolify / cualquier orquestador, con volumen `/data` para persistencia
 
