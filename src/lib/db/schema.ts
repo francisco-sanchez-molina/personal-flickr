@@ -46,6 +46,15 @@ addColumnIfMissing("photos", "develop_params", "TEXT");
 addColumnIfMissing("photos", "has_base", "INTEGER NOT NULL DEFAULT 0");
 addColumnIfMissing("photos", "original_ext", "TEXT");
 addColumnIfMissing("photos", "is_favorite", "INTEGER NOT NULL DEFAULT 0");
+
+// Soft delete (PF-214 / trash). NULL = live, timestamp = in trash. Files,
+// gallery/tag memberships and share tokens are kept until a hard purge so a
+// restore is lossless. Every browsing query filters `deleted_at IS NULL`;
+// the trash view selects the inverse.
+addColumnIfMissing("photos", "deleted_at", "INTEGER");
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_photos_deleted ON photos(deleted_at)`,
+);
 db.exec(
   `CREATE INDEX IF NOT EXISTS idx_photos_favorite ON photos(is_favorite, uploaded_at DESC)`,
 );

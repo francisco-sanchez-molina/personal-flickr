@@ -134,7 +134,9 @@ export function runSmartFilter(filter: SmartFilter): Photo[] {
     params.push(filter.galleryId);
   }
 
-  const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+  // Trashed photos never match a smart album.
+  where.unshift(`p.deleted_at IS NULL`);
+  const whereSql = `WHERE ${where.join(" AND ")}`;
   const sql = `SELECT p.* FROM photos p ${whereSql}
                ORDER BY p.uploaded_at DESC, p.id DESC`;
   return db.prepare<typeof params, Photo>(sql).all(...params);

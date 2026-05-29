@@ -45,6 +45,8 @@ export interface Photo {
   processing_status: "ready" | "processing" | "failed";
   /** SHA-256 of the original uploaded bytes. NULL for legacy rows. */
   content_hash: string | null;
+  /** Soft-delete timestamp (ms). NULL = live; set = in trash (PF-214). */
+  deleted_at: number | null;
 }
 
 export interface PhotoUpsert {
@@ -74,10 +76,13 @@ export interface PhotoUpsert {
 }
 
 const stmts = {
+  // byName / byId intentionally ignore deleted_at: byName backs filename
+  // collision detection (the file stays on disk while trashed), and byId
+  // must resolve trashed rows so the trash view + restore work.
   byName: db.prepare<[string], Photo>("SELECT * FROM photos WHERE name = ?"),
   byId: db.prepare<[number], Photo>("SELECT * FROM photos WHERE id = ?"),
   list: db.prepare<[], Photo>(
-    "SELECT * FROM photos ORDER BY uploaded_at DESC, id DESC",
+    "SELECT * FROM photos WHERE deleted_at IS NULL ORDER BY uploaded_at DESC, id DESC",
   ),
   insert: db.prepare(
     `INSERT INTO photos
@@ -99,9 +104,10 @@ const stmts = {
      WHERE name = ?`,
   ),
   // Lookup by SHA-256 — used for upload-time dedup. NULL hashes never
-  // match (legacy rows are excluded from the partial index).
+  // match. Trashed rows are excluded so re-uploading something you
+  // deleted creates a fresh photo instead of silently colliding.
   byHash: db.prepare<[string], Photo>(
-    `SELECT * FROM photos WHERE content_hash = ? LIMIT 1`,
+    `SELECT * FROM photos WHERE content_hash = ? AND deleted_at IS NULL LIMIT 1`,
   ),
   // Lazy-backfill the content_hash for a legacy row. The WHERE clause
   // makes this a no-op if a hash already exists, so concurrent backfills
@@ -126,7 +132,8 @@ const stmts = {
   ),
   listMissingExif: db.prepare<[], Photo>(
     `SELECT * FROM photos
-     WHERE camera IS NULL AND lens IS NULL AND iso IS NULL
+     WHERE deleted_at IS NULL
+       AND camera IS NULL AND lens IS NULL AND iso IS NULL
        AND fstop IS NULL AND taken_at IS NULL`,
   ),
   updateDevelop: db.prepare(
@@ -138,25 +145,40 @@ const stmts = {
     `UPDATE photos SET is_favorite = ? WHERE id = ?`,
   ),
   listFavorites: db.prepare<[], Photo>(
-    `SELECT * FROM photos WHERE is_favorite = 1 ORDER BY uploaded_at DESC, id DESC`,
+    `SELECT * FROM photos WHERE is_favorite = 1 AND deleted_at IS NULL ORDER BY uploaded_at DESC, id DESC`,
   ),
-  countPhotos: db.prepare<[], { c: number }>(`SELECT COUNT(*) AS c FROM photos`),
+  countPhotos: db.prepare<[], { c: number }>(
+    `SELECT COUNT(*) AS c FROM photos WHERE deleted_at IS NULL`,
+  ),
   listRecent: db.prepare<[number], Photo>(
-    `SELECT * FROM photos ORDER BY uploaded_at DESC, id DESC LIMIT ?`,
+    `SELECT * FROM photos WHERE deleted_at IS NULL ORDER BY uploaded_at DESC, id DESC LIMIT ?`,
   ),
   listOrphans: db.prepare<[], Photo>(`
     SELECT p.* FROM photos p
-    WHERE NOT EXISTS (
+    WHERE p.deleted_at IS NULL AND NOT EXISTS (
       SELECT 1 FROM photo_galleries pg WHERE pg.photo_id = p.id
     )
     ORDER BY p.uploaded_at DESC, p.id DESC
   `),
   countOrphans: db.prepare<[], { c: number }>(`
     SELECT COUNT(*) AS c FROM photos p
-    WHERE NOT EXISTS (
+    WHERE p.deleted_at IS NULL AND NOT EXISTS (
       SELECT 1 FROM photo_galleries pg WHERE pg.photo_id = p.id
     )
   `),
+  // ── trash (PF-214) ──
+  softDelete: db.prepare("UPDATE photos SET deleted_at = ? WHERE id = ?"),
+  restore: db.prepare("UPDATE photos SET deleted_at = NULL WHERE id = ?"),
+  listTrash: db.prepare<[], Photo>(
+    `SELECT * FROM photos WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC, id DESC`,
+  ),
+  countTrash: db.prepare<[], { c: number }>(
+    `SELECT COUNT(*) AS c FROM photos WHERE deleted_at IS NOT NULL`,
+  ),
+  // Rows trashed before `cutoff` — for an optional retention sweep.
+  listTrashedBefore: db.prepare<[number], Photo>(
+    `SELECT * FROM photos WHERE deleted_at IS NOT NULL AND deleted_at < ?`,
+  ),
   delete: db.prepare("DELETE FROM photos WHERE id = ?"),
 };
 
@@ -284,5 +306,16 @@ export const photoQueries = {
   count: () => stmts.countPhotos.get()?.c ?? 0,
   listOrphans: () => stmts.listOrphans.all(),
   countOrphans: () => stmts.countOrphans.get()?.c ?? 0,
+  // ── trash (PF-214) ──
+  /** Move to trash. Files + memberships + shares are kept (lossless restore). */
+  softDelete: (id: number) => stmts.softDelete.run(Date.now(), id),
+  /** Bring a trashed photo back to live. */
+  restore: (id: number) => stmts.restore.run(id),
+  listTrash: () => stmts.listTrash.all(),
+  countTrash: () => stmts.countTrash.get()?.c ?? 0,
+  listTrashedBefore: (cutoff: number) => stmts.listTrashedBefore.all(cutoff),
+  /** Hard delete — row gone, FK CASCADE drops memberships + shares. */
+  purge: (id: number) => stmts.delete.run(id),
+  /** @deprecated use softDelete (trash) or purge (permanent). Kept for callers mid-migration. */
   delete: (id: number) => stmts.delete.run(id),
 };

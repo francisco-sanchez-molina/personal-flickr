@@ -38,9 +38,10 @@ const tagStmts = {
     SELECT t.*, COALESCE(c.cnt, 0) AS photo_count
     FROM tags t
     LEFT JOIN (
-      SELECT tag_id, COUNT(*) AS cnt
-      FROM photo_tags
-      GROUP BY tag_id
+      SELECT pt.tag_id, COUNT(*) AS cnt
+      FROM photo_tags pt
+      JOIN photos p ON p.id = pt.photo_id AND p.deleted_at IS NULL
+      GROUP BY pt.tag_id
     ) c ON c.tag_id = t.id
     ORDER BY photo_count DESC, t.name COLLATE NOCASE ASC
   `),
@@ -53,7 +54,7 @@ const tagStmts = {
   photosOfTag: db.prepare<[number], Photo>(`
     SELECT p.* FROM photos p
     JOIN photo_tags pt ON pt.photo_id = p.id
-    WHERE pt.tag_id = ?
+    WHERE pt.tag_id = ? AND p.deleted_at IS NULL
     ORDER BY p.uploaded_at DESC, p.id DESC
   `),
   addMember: db.prepare(

@@ -5,6 +5,7 @@ import GalleriesGrid from "~/components/gallery/GalleriesGrid.tsx";
 import SmartAlbumsManager from "~/components/gallery/SmartAlbumsManager.tsx";
 import TagsManager from "~/components/gallery/TagsManager.tsx";
 import SharesManager from "~/components/share/SharesManager.tsx";
+import TrashManager from "~/components/gallery/TrashManager.tsx";
 import EmptyState from "~/components/ui/EmptyState.astro";
 import SectionHead from "~/components/ui/SectionHead.astro";
 import {
@@ -33,6 +34,7 @@ const view:
   | "smart-albums"
   | "smart"
   | "shares"
+  | "trash"
   | "search" = q
   ? "search"
   : viewParam === "galleries"
@@ -51,7 +53,9 @@ const view:
                 ? "smart"
                 : viewParam === "shares"
                   ? "shares"
-                  : "home";
+                  : viewParam === "trash"
+                    ? "trash"
+                    : "home";
 
 // Per-view data fetching
 let photos: ReturnType<typeof photoQueries.list> = [];
@@ -69,6 +73,9 @@ let smartAlbumDetail: { id: number; name: string; filter: SmartFilter } | null =
 
 // Share rows (only used for view === "shares")
 let shares: ReturnType<typeof shareQueries.listAll> = [];
+
+// Trash rows (only used for view === "trash")
+let trash: ReturnType<typeof photoQueries.listTrash> = [];
 
 if (view === "search") {
   photos = dbSearch.photos(q);
@@ -93,6 +100,8 @@ if (view === "search") {
   }));
 } else if (view === "shares") {
   shares = shareQueries.listAll();
+} else if (view === "trash") {
+  trash = photoQueries.listTrash();
 } else if (view === "smart") {
   if (Number.isInteger(smartIdParam) && smartIdParam > 0) {
     const album = smartAlbumQueries.byId(smartIdParam);
@@ -176,6 +185,9 @@ function relativeTime(ts: number): string {
           </a>
           <a href="/?view=shares" class:list={{ on: view === "shares" }}>
             Compartidas
+          </a>
+          <a href="/?view=trash" class:list={{ on: view === "trash" }}>
+            Papelera
           </a>
         </nav>
       )
@@ -271,6 +283,24 @@ function relativeTime(ts: number): string {
             </span>
           </SectionHead>
           <SharesManager client:load initial={shares} />
+        </section>
+      ) : view === "trash" ? (
+        <section>
+          <SectionHead eyebrow="Borradas recuperables" title="Papelera">
+            <span slot="actions" class="count-chip">
+              {trash.length} {trash.length === 1 ? "foto" : "fotos"}
+            </span>
+          </SectionHead>
+          <TrashManager
+            client:load
+            initial={trash.map((p) => ({
+              id: p.id,
+              name: p.name,
+              kind: p.kind,
+              developed_at: p.developed_at,
+              deleted_at: p.deleted_at,
+            }))}
+          />
         </section>
       ) : view === "smart" ? (
         <section>

@@ -69,18 +69,19 @@ const galleryStmts = {
       cover.developed_at AS cover_developed_at
     FROM galleries g
     LEFT JOIN (
-      SELECT gallery_id, COUNT(*) AS cnt
-      FROM photo_galleries
-      GROUP BY gallery_id
+      SELECT pg.gallery_id, COUNT(*) AS cnt
+      FROM photo_galleries pg
+      JOIN photos p ON p.id = pg.photo_id AND p.deleted_at IS NULL
+      GROUP BY pg.gallery_id
     ) pc ON pc.gallery_id = g.id
     LEFT JOIN photos cover ON cover.id = COALESCE(
       g.cover_photo_id,
       (SELECT p.id FROM photos p
        JOIN photo_galleries pg ON pg.photo_id = p.id
-       WHERE pg.gallery_id = g.id
+       WHERE pg.gallery_id = g.id AND p.deleted_at IS NULL
        ORDER BY p.uploaded_at DESC, p.id DESC
        LIMIT 1)
-    )
+    ) AND cover.deleted_at IS NULL
     WHERE g.parent_id IS NULL
     ORDER BY g.updated_at DESC, g.id DESC
   `),
@@ -94,18 +95,19 @@ const galleryStmts = {
       cover.developed_at AS cover_developed_at
     FROM galleries g
     LEFT JOIN (
-      SELECT gallery_id, COUNT(*) AS cnt
-      FROM photo_galleries
-      GROUP BY gallery_id
+      SELECT pg.gallery_id, COUNT(*) AS cnt
+      FROM photo_galleries pg
+      JOIN photos p ON p.id = pg.photo_id AND p.deleted_at IS NULL
+      GROUP BY pg.gallery_id
     ) pc ON pc.gallery_id = g.id
     LEFT JOIN photos cover ON cover.id = COALESCE(
       g.cover_photo_id,
       (SELECT p.id FROM photos p
        JOIN photo_galleries pg ON pg.photo_id = p.id
-       WHERE pg.gallery_id = g.id
+       WHERE pg.gallery_id = g.id AND p.deleted_at IS NULL
        ORDER BY p.uploaded_at DESC, p.id DESC
        LIMIT 1)
-    )
+    ) AND cover.deleted_at IS NULL
     WHERE g.parent_id = ?
     ORDER BY g.name COLLATE NOCASE ASC
   `),
@@ -115,7 +117,7 @@ const galleryStmts = {
     SELECT p.*
     FROM photos p
     JOIN photo_galleries pg ON pg.photo_id = p.id
-    WHERE pg.gallery_id = ?
+    WHERE pg.gallery_id = ? AND p.deleted_at IS NULL
     ORDER BY p.uploaded_at DESC, p.id DESC
   `),
 

@@ -193,9 +193,10 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
         return;
       }
       const ok = await confirm({
-        title: "¿Eliminar esta foto?",
-        description: "Se borra el archivo del disco. No se puede deshacer.",
-        confirmLabel: "Eliminar",
+        title: "¿Enviar esta foto a la papelera?",
+        description:
+          "Se oculta de galerías y vistas, pero puedes restaurarla desde la Papelera.",
+        confirmLabel: "A la papelera",
         destructive: true,
       });
       if (!ok) return;
@@ -254,9 +255,9 @@ export default function Gallery({ initial, galleryId, orphans }: Props) {
     const ids = Array.from(selection.selected);
     if (ids.length === 0) return;
     const ok = await confirm({
-      title: `¿Eliminar ${ids.length} foto${ids.length === 1 ? "" : "s"} del disco?`,
-      description: "Esto es irreversible.",
-      confirmLabel: "Eliminar",
+      title: `¿Enviar ${ids.length} foto${ids.length === 1 ? "" : "s"} a la papelera?`,
+      description: "Puedes restaurarlas desde la Papelera mientras no la vacíes.",
+      confirmLabel: "A la papelera",
       destructive: true,
     });
     if (!ok) return;
