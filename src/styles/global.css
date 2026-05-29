@@ -75,6 +75,9 @@
 @import "./modules/sheet.css";
 @import "./modules/bulk.css";
 
+/* Map view (PF-210) — Leaflet base styles are imported by the island. */
+@import "./modules/map.css";
+
 /* Catch-all utilities (.empty, .tabs, .kbd, .seg, .sr-only…) */
 @import "./modules/misc.css";
 

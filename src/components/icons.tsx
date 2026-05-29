@@ -173,6 +173,12 @@ export const Icons = {
       <path d="M5 15V6a2 2 0 0 1 2-2h9" />
     </S>
   ),
+  Map: (p: IconProps) => (
+    <S {...p}>
+      <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </S>
+  ),
   Compare: (p: IconProps) => (
     <S {...p}>
       <rect x="3" y="4" width="18" height="16" rx="2" />

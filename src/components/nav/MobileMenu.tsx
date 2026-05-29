@@ -73,6 +73,10 @@ export default function MobileMenu({ open, onClose, current, username }: Props) 
             <Icons.Tag size={18} />
             <span>Etiquetas</span>
           </SheetItem>
+          <SheetItem as="a" href="/?view=map" active={current === "map"}>
+            <Icons.Map size={18} />
+            <span>Mapa</span>
+          </SheetItem>
         </SheetSection>
 
         <SheetSection label="Mood">

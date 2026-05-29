@@ -6,6 +6,7 @@ import SmartAlbumsManager from "~/components/gallery/SmartAlbumsManager.tsx";
 import TagsManager from "~/components/gallery/TagsManager.tsx";
 import SharesManager from "~/components/share/SharesManager.tsx";
 import TrashManager from "~/components/gallery/TrashManager.tsx";
+import MapView from "~/components/map/MapView.tsx";
 import EmptyState from "~/components/ui/EmptyState.astro";
 import SectionHead from "~/components/ui/SectionHead.astro";
 import {
@@ -36,6 +37,7 @@ const view:
   | "smart"
   | "shares"
   | "trash"
+  | "map"
   | "search" = q
   ? "search"
   : viewParam === "galleries"
@@ -56,7 +58,9 @@ const view:
                   ? "shares"
                   : viewParam === "trash"
                     ? "trash"
-                    : "home";
+                    : viewParam === "map"
+                      ? "map"
+                      : "home";
 
 // Per-view data fetching
 let photos: ReturnType<typeof photoQueries.list> = [];
@@ -78,6 +82,9 @@ let galleryShares: ReturnType<typeof galleryShareQueries.listAll> = [];
 
 // Trash rows (only used for view === "trash")
 let trash: ReturnType<typeof photoQueries.listTrash> = [];
+
+// Geotagged photos (only used for view === "map")
+let geotagged: ReturnType<typeof photoQueries.listGeotagged> = [];
 
 if (view === "search") {
   photos = dbSearch.photos(q);
@@ -105,6 +112,8 @@ if (view === "search") {
   galleryShares = galleryShareQueries.listAll();
 } else if (view === "trash") {
   trash = photoQueries.listTrash();
+} else if (view === "map") {
+  geotagged = photoQueries.listGeotagged();
 } else if (view === "smart") {
   if (Number.isInteger(smartIdParam) && smartIdParam > 0) {
     const album = smartAlbumQueries.byId(smartIdParam);
@@ -146,7 +155,9 @@ const railCurrent =
         ? "tags"
         : view === "galleries"
           ? "galleries"
-          : "home";
+          : view === "map"
+            ? "map"
+            : "home";
 
 function relativeTime(ts: number): string {
   const diff = Date.now() - ts;
@@ -308,6 +319,31 @@ function relativeTime(ts: number): string {
               deleted_at: p.deleted_at,
             }))}
           />
+        </section>
+      ) : view === "map" ? (
+        <section>
+          <SectionHead eyebrow="Dónde se hicieron" title="Mapa">
+            <span slot="actions" class="count-chip">
+              {geotagged.length} con ubicación
+            </span>
+          </SectionHead>
+          {geotagged.length === 0 ? (
+            <EmptyState
+              title="Ninguna foto tiene ubicación todavía."
+              sub="Las fotos con GPS en sus EXIF aparecerán aquí sobre el mapa."
+            />
+          ) : (
+            <MapView
+              client:only="react"
+              points={geotagged.map((p) => ({
+                id: p.id,
+                name: p.name,
+                developed_at: p.developed_at,
+                lat: p.gps_lat as number,
+                lng: p.gps_lng as number,
+              }))}
+            />
+          )}
         </section>
       ) : view === "smart" ? (
         <section>

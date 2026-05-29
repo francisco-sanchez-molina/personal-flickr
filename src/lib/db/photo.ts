@@ -166,6 +166,12 @@ const stmts = {
       SELECT 1 FROM photo_galleries pg WHERE pg.photo_id = p.id
     )
   `),
+  // Geotagged, live photos for the map view (PF-210).
+  listGeotagged: db.prepare<[], Photo>(`
+    SELECT * FROM photos
+    WHERE deleted_at IS NULL AND gps_lat IS NOT NULL AND gps_lng IS NOT NULL
+    ORDER BY taken_at DESC, uploaded_at DESC, id DESC
+  `),
   // ── trash (PF-214) ──
   softDelete: db.prepare("UPDATE photos SET deleted_at = ? WHERE id = ?"),
   restore: db.prepare("UPDATE photos SET deleted_at = NULL WHERE id = ?"),
@@ -306,6 +312,7 @@ export const photoQueries = {
   count: () => stmts.countPhotos.get()?.c ?? 0,
   listOrphans: () => stmts.listOrphans.all(),
   countOrphans: () => stmts.countOrphans.get()?.c ?? 0,
+  listGeotagged: () => stmts.listGeotagged.all(),
   // ── trash (PF-214) ──
   /** Move to trash. Files + memberships + shares are kept (lossless restore). */
   softDelete: (id: number) => stmts.softDelete.run(Date.now(), id),
