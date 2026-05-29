@@ -155,6 +155,16 @@ describe("galleries: membership, counts, covers", () => {
     expect(galleryQueries.list().find((x) => x.id === g)?.photo_count).toBe(1);
   });
 
+  it("surfaces cover_kind so video covers can render their poster", () => {
+    const g = galleryQueries.create("vid", "Video cover", null);
+    const v = makePhoto({ name: "clip.mp4", kind: "video" });
+    galleryQueries.addMember(v, g);
+    galleryQueries.setCover(g, v);
+    const summary = galleryQueries.list().find((x) => x.id === g);
+    expect(summary?.cover_name).toBe("clip.mp4");
+    expect(summary?.cover_kind).toBe("video");
+  });
+
   it("a trashed pinned cover is not surfaced", () => {
     const g = galleryQueries.create("c", "Cover test", null);
     const a = makePhoto();

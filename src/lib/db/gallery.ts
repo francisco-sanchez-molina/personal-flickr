@@ -28,6 +28,9 @@ export interface GallerySummary extends Gallery {
   cover_name: string | null;
   /** developed_at of the cover photo for cache-busting the thumb URL. */
   cover_developed_at: number | null;
+  /** Kind of the cover ('photo' | 'video'). Video covers must render the
+   *  WebP poster (thumb), not the raw .mp4 file. Null when empty. */
+  cover_kind: "photo" | "video" | null;
 }
 
 const galleryStmts = {
@@ -66,7 +69,8 @@ const galleryStmts = {
       g.*,
       COALESCE(pc.cnt, 0) AS photo_count,
       cover.name AS cover_name,
-      cover.developed_at AS cover_developed_at
+      cover.developed_at AS cover_developed_at,
+      cover.kind AS cover_kind
     FROM galleries g
     LEFT JOIN (
       SELECT pg.gallery_id, COUNT(*) AS cnt
@@ -92,7 +96,8 @@ const galleryStmts = {
       g.*,
       COALESCE(pc.cnt, 0) AS photo_count,
       cover.name AS cover_name,
-      cover.developed_at AS cover_developed_at
+      cover.developed_at AS cover_developed_at,
+      cover.kind AS cover_kind
     FROM galleries g
     LEFT JOIN (
       SELECT pg.gallery_id, COUNT(*) AS cnt

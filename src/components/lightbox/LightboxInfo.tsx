@@ -118,7 +118,9 @@ export default function LightboxInfo({ photo }: { photo: Photo }) {
       <div className="sec">
         <h4>Histograma</h4>
         <Histogram
-          src={`/files/photo/${encodeURIComponent(photo.name)}?v=${photo.developed_at}`}
+          // For videos /files/photo is the .mp4; read the WebP poster
+          // instead so the histogram has actual pixels to sample.
+          src={`/files/${photo.kind === "video" ? "thumb" : "photo"}/${encodeURIComponent(photo.name)}?v=${photo.developed_at}`}
         />
       </div>
 

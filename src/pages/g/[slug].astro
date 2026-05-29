@@ -74,7 +74,7 @@ crumbs.push({ name: gallery.name });
       {
         cover ? (
           <img
-            src={`/files/photo/${encodeURIComponent(cover.name)}?v=${cover.developed_at}`}
+            src={`/files/${cover.kind === "video" ? "thumb" : "photo"}/${encodeURIComponent(cover.name)}?v=${cover.developed_at}`}
             alt={gallery.name}
           />
         ) : (
@@ -160,7 +160,7 @@ crumbs.push({ name: gallery.name });
                   <div class="gcard-cover">
                     {g.cover_name ? (
                       <img
-                        src={`/files/photo/${encodeURIComponent(g.cover_name)}?v=${g.cover_developed_at ?? 0}`}
+                        src={`/files/${g.cover_kind === "video" ? "thumb" : "photo"}/${encodeURIComponent(g.cover_name)}?v=${g.cover_developed_at ?? 0}`}
                         alt={g.name}
                         loading="lazy"
                       />

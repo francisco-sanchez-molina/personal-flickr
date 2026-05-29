@@ -11,11 +11,19 @@ interface GallerySummary {
   photo_count: number;
   cover_name: string | null;
   cover_developed_at: number | null;
+  cover_kind: "photo" | "video" | null;
 }
 
-function coverUrl(coverName: string, developedAt: number | null): string {
+function coverUrl(
+  coverName: string,
+  developedAt: number | null,
+  kind: "photo" | "video" | null,
+): string {
   const v = developedAt ?? 0;
-  return `/files/photo/${encodeURIComponent(coverName)}?v=${v}`;
+  // Videos have no still under /files/photo (that path serves the .mp4);
+  // use the WebP poster from /files/thumb so the cover renders as an image.
+  const dir = kind === "video" ? "thumb" : "photo";
+  return `/files/${dir}/${encodeURIComponent(coverName)}?v=${v}`;
 }
 
 function thumbStripUrl(name: string, developedAt: number | null): string {
@@ -58,6 +66,7 @@ export default function GalleriesGrid({
                   photo_count: 0,
                   cover_name: null,
                   cover_developed_at: null,
+                  cover_kind: null,
                 },
                 ...arr,
               ])
@@ -99,7 +108,7 @@ export default function GalleriesGrid({
               <div className="gcard-cover">
                 {g.cover_name ? (
                   <img
-                    src={coverUrl(g.cover_name, g.cover_developed_at)}
+                    src={coverUrl(g.cover_name, g.cover_developed_at, g.cover_kind)}
                     alt={g.name}
                     loading="lazy"
                   />

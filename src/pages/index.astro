@@ -217,7 +217,7 @@ function relativeTime(ts: number): string {
               class="hero block text-inherit no-underline"
             >
               <img
-                src={`/files/photo/${encodeURIComponent(featuredGallery.cover_name)}?v=${featuredGallery.cover_developed_at ?? 0}`}
+                src={`/files/${featuredGallery.cover_kind === "video" ? "thumb" : "photo"}/${encodeURIComponent(featuredGallery.cover_name)}?v=${featuredGallery.cover_developed_at ?? 0}`}
                 alt={featuredGallery.name}
               />
               <div class="hero-grade" />
