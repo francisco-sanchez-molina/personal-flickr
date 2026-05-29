@@ -45,6 +45,7 @@ estable `PF-NNN` para poder referenciarla en commits, issues y código.
 | PF-023 | Presets de revelado | ✅ | Recetas predefinidas mapeadas a los parámetros persistidos. |
 | PF-024 | Rotación rápida (90° L/R) | ✅ | Botones en el lightbox; recodifica el base. |
 | PF-025 | Histograma | ✅ | Cálculo client-side en el panel de info. |
+| PF-026 | Calidez (sepia) | ✅ | Knob CSS `sepia()` ↔ sharp `.recomb()` con la matriz idéntica; preview fiel al guardado. |
 
 ## 4. Vídeo
 
@@ -66,6 +67,7 @@ estable `PF-NNN` para poder referenciarla en commits, issues y código.
 | PF-043 | Sub-galerías (1 nivel) | ✅ | Reparentar bajo otra top-level (US-11). |
 | PF-044 | Huérfanas (sin galería) | ✅ | Vista dedicada + contador en la grid. |
 | PF-045 | Quitar de galería en lote | ✅ | Desde la barra de selección. |
+| PF-046 | Papelera / soft-delete | ✅ | Borrar oculta (no destruye); `?view=trash` restaura, purga o vacía. Ficheros + membresías + shares se conservan hasta el purge. |
 
 ## 6. Organización: etiquetas
 
@@ -93,6 +95,7 @@ estable `PF-NNN` para poder referenciarla en commits, issues y código.
 | PF-072 | Favorito en lote | ✅ | Toggle masivo desde la barra de selección. |
 | PF-073 | Búsqueda global | ✅ | `?q=` sobre fotos y galerías (nombre, cámara, etiqueta…). Atajo ⌘K. |
 | PF-074 | Home / Inicio | ✅ | Hero destacado + galerías + subidas recientes. |
+| PF-075 | Vista de mapa | ✅ | `?view=map`: fotos geolocalizadas sobre OSM (Leaflet), markers con thumbnail. |
 
 ## 9. Visor (lightbox)
 
@@ -119,12 +122,14 @@ estable `PF-NNN` para poder referenciarla en commits, issues y código.
 
 | ID | Característica | Estado | Notas |
 |----|---------------|--------|-------|
-| PF-100 | Enlace público por foto | ✅ | Token de 22 chars; ve la foto sin login. Sólo fotos (galerías aún no). |
+| PF-100 | Enlace público por foto | ✅ | Token de 22 chars; ve la foto sin login. |
 | PF-101 | Revocar enlace | ✅ | Borrar el token corta el acceso en todas partes al instante. |
 | PF-102 | Página pública de visualización | ✅ | `/s/:token`, con caption de EXIF, `noindex`, 404 si revocado. |
 | PF-103 | Contador de vistas | ✅ | 1 page-view = 1 vista (no cuenta range requests de vídeo). |
 | PF-104 | Listado global de compartidas | ✅ | Vista `?view=shares`: thumbnail, URL, creado, última vista, vistas, copiar/revocar. |
 | PF-105 | Varios enlaces por foto | ✅ | Cada uno con su contador independiente. |
+| PF-106 | Enlace público por galería | ✅ | Token → `/sg/:token`; sirve sólo fotos miembro vivas. Mismo contador + revocado. |
+| PF-107 | Listado unificado foto + galería | ✅ | `?view=shares` lista ambos tipos con su icono y contador. |
 
 ## 12. Selección y acciones en lote
 
@@ -163,20 +168,23 @@ estable `PF-NNN` para poder referenciarla en commits, issues y código.
 | PF-142 | Cloudflare Tunnel embebido | ✅ | `pnpm share` expone sin abrir puertos. |
 | PF-143 | Indicador de uso de disco | ✅ | Chip "X.X GB" en el rail, poll 60s, cacheado. |
 | PF-144 | Migraciones idempotentes | ✅ | `addColumnIfMissing` — esquema evoluciona sin herramienta de migración. |
-| PF-145 | Tests unitarios | 🟡 | 65 tests sobre lib puro + schemas Zod. Falta capa DB/sharp/E2E. |
+| PF-145 | Tests unitarios + integración | ✅ | 92 tests: lib puro + schemas Zod + capa DB completa (temp SQLite). Queda E2E de navegador. |
 
 ---
 
 ## 🔭 Backlog / candidatas (gorra de PO)
 
-Priorizado por valor/esfuerzo. Nada de esto está implementado.
+Priorizado por valor/esfuerzo.
+
+> **Entregado desde la última revisión:** PF-200 (compartir galerías),
+> PF-210 (vista de mapa), PF-214 (papelera), PF-221 → reinterpretado como
+> PF-026 (knob Calidez real), y PF-145 (tests de la capa DB). Movidos a sus
+> secciones de capacidad arriba.
 
 ### Alta — completan huecos obvios
-- **PF-200 · Compartir galerías** — el modelo de shares ya existe pero sólo cubre
-  fotos. Tabla `gallery_shares` análoga + página pública de galería. El propio
-  código lo señala como extensión natural.
 - **PF-201 · Caducidad / contraseña en enlaces** — hoy un enlace vive hasta que
-  se revoca. Opción de expiración por fecha o protección por PIN.
+  se revoca. Opción de expiración por fecha o protección por PIN. Aplica ya a
+  foto y galería.
 - **PF-202 · Compartir en lote** — generar enlace desde la barra de selección,
   no sólo foto a foto.
 - **PF-203 · Galerías en el menú "···" del lightbox móvil** — el GalleryPicker es
@@ -184,21 +192,19 @@ Priorizado por valor/esfuerzo. Nada de esto está implementado.
   pendiente).
 
 ### Media — valor real, más trabajo
-- **PF-210 · Vista de mapa** — ya guardamos `gps_lat`/`gps_lng` y el tipo de
-  navegación reserva un `"map"`, pero no hay ni ítem de rail ni vista. Plottear
-  las fotos geolocalizadas sería la siguiente palanca de descubrimiento.
 - **PF-211 · Ordenación / filtros en grid** — por fecha de captura, cámara, etc.,
   sin tener que crear un smart album.
 - **PF-212 · Descarga en lote (zip)** — seleccionar y descargar varias.
 - **PF-213 · Línea de tiempo** — agrupar por mes/año de captura.
-- **PF-214 · Papelera / undo de borrado** — hoy el borrado es definitivo.
+- **PF-215 · Clustering de markers en el mapa** — PF-075 pinta markers sueltos;
+  con muchas fotos geolocalizadas conviene agrupar (Leaflet.markercluster).
+- **PF-216 · Vaciado automático de papelera** — `listTrashedBefore` ya existe;
+  falta un cron/retención (p. ej. purgar lo que lleve >30 días en la papelera).
 
 ### Baja — nice-to-have
 - **PF-220 · Multiusuario / roles** — explícitamente fuera de scope hoy
   (ver `ARCHITECTURE.md` "Things we don't do"), pero es la palanca de producto
   más grande si algún día cambia el público objetivo.
-- **PF-221 · Sidecar de revelado avanzado** — sombras, luces, temperatura,
-  viñeta… ya hay sliders en la UI cuyos valores no llegan al backend.
 - **PF-222 · Slideshow / presentación** — auto-avance en el lightbox.
 - **PF-223 · Álbumes compartidos colaborativos** — depende de multiusuario.
 
