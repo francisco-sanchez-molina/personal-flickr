@@ -1,13 +1,14 @@
 /**
- * Compartir foto — dialog para crear y revocar enlaces públicos.
+ * Compartir — dialog para crear y revocar enlaces públicos de una foto o
+ * una galería. Cada enlace es un token de 22 caracteres (16 bytes random)
+ * que concede acceso de sólo lectura sin login.
  *
- * Cada enlace es un token de 22 caracteres (16 bytes random) que
- * concede acceso de sólo lectura a una foto, sin login. Se gestionan
- * vía /api/photos/:id/shares (GET/POST) y /api/shares/:token (DELETE).
+ *   <ShareDialog kind="photo"   id={photo.id}   open … />  // /s/:token
+ *   <ShareDialog kind="gallery" id={gallery.id} open … />  // /sg/:token
  *
- * Usado desde el Lightbox: el botón "Compartir" abre este diálogo
- * cargando la lista actual y permite generar uno nuevo o borrar
- * cualquiera de los existentes.
+ * Endpoints por tipo:
+ *   photo   → /api/photos/:id/shares     · revoke /api/shares/:token
+ *   gallery → /api/galleries/:id/shares  · revoke /api/gallery-shares/:token
  */
 import { useEffect, useState } from "react";
 import { Icons } from "../icons";
@@ -26,24 +27,39 @@ import {
 import ErrorText from "../ui/ErrorText";
 import IconButton from "../ui/IconButton";
 
-interface PhotoShare {
+interface ShareRow {
   token: string;
-  photo_id: number;
   created_at: number;
   view_count: number;
-  last_viewed_at: number | null;
 }
+
+type ShareKind = "photo" | "gallery";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  photoId: number;
+  kind: ShareKind;
+  id: number;
 }
 
-function shareUrlFor(token: string): string {
-  if (typeof window === "undefined") return `/s/${token}`;
-  return `${window.location.origin}/s/${token}`;
-}
+const COPY = {
+  photo: {
+    title: "Compartir foto",
+    desc: "Enlaces públicos a esta foto. Cualquiera con la URL podrá verla sin iniciar sesión hasta que la revoques",
+    noun: "la foto",
+    listEndpoint: (id: number) => `/api/photos/${id}/shares`,
+    revokeEndpoint: (token: string) => `/api/shares/${token}`,
+    urlPrefix: "/s/",
+  },
+  gallery: {
+    title: "Compartir galería",
+    desc: "Enlaces públicos a esta galería. Cualquiera con la URL podrá ver todas sus fotos sin iniciar sesión hasta que lo revoques",
+    noun: "la galería",
+    listEndpoint: (id: number) => `/api/galleries/${id}/shares`,
+    revokeEndpoint: (token: string) => `/api/gallery-shares/${token}`,
+    urlPrefix: "/sg/",
+  },
+} as const;
 
 function fmtCreated(ms: number): string {
   return new Date(ms).toLocaleString("es-ES", {
@@ -52,8 +68,14 @@ function fmtCreated(ms: number): string {
   });
 }
 
-export default function ShareDialog({ open, onOpenChange, photoId }: Props) {
-  const [shares, setShares] = useState<PhotoShare[]>([]);
+export default function ShareDialog({ open, onOpenChange, kind, id }: Props) {
+  const c = COPY[kind];
+  const shareUrlFor = (token: string) =>
+    typeof window === "undefined"
+      ? `${c.urlPrefix}${token}`
+      : `${window.location.origin}${c.urlPrefix}${token}`;
+
+  const [shares, setShares] = useState<ShareRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +91,7 @@ export default function ShareDialog({ open, onOpenChange, photoId }: Props) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetch(`/api/photos/${photoId}/shares`)
+    fetch(c.listEndpoint(id))
       .then((r) => r.json())
       .then((body) => {
         if (cancelled) return;
@@ -80,7 +102,7 @@ export default function ShareDialog({ open, onOpenChange, photoId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [open, photoId]);
+  }, [open, id, c]);
 
   // Clear the "Copiado ✓" badge after a couple of seconds.
   useEffect(() => {
@@ -93,15 +115,12 @@ export default function ShareDialog({ open, onOpenChange, photoId }: Props) {
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch(`/api/photos/${photoId}/shares`, {
-        method: "POST",
-      });
+      const res = await fetch(c.listEndpoint(id), { method: "POST" });
       const body = await res.json();
       if (!res.ok) throw new Error(body.detail ?? body.error ?? "error");
-      const share = body.share as PhotoShare;
+      const share = body.share as ShareRow;
       setShares((arr) => [share, ...arr]);
-      // Convenience: copy the new URL straight away so the user can
-      // paste it without an extra click.
+      // Convenience: copy the new URL straight away.
       await copyToClipboard(shareUrlFor(share.token));
       setCopied(share.token);
     } catch (e: unknown) {
@@ -111,18 +130,17 @@ export default function ShareDialog({ open, onOpenChange, photoId }: Props) {
     }
   };
 
-  const revoke = async (share: PhotoShare) => {
+  const revoke = async (share: ShareRow) => {
     const ok = await confirm({
       title: "¿Revocar este enlace?",
-      description:
-        "Cualquiera que tenga la URL dejará de poder ver la foto.",
+      description: `Cualquiera que tenga la URL dejará de poder ver ${c.noun}.`,
       confirmLabel: "Revocar",
       destructive: true,
     });
     if (!ok) return;
     setError(null);
     try {
-      const res = await fetch(`/api/shares/${share.token}`, {
+      const res = await fetch(c.revokeEndpoint(share.token), {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -135,7 +153,7 @@ export default function ShareDialog({ open, onOpenChange, photoId }: Props) {
     }
   };
 
-  const copy = async (share: PhotoShare) => {
+  const copy = async (share: ShareRow) => {
     try {
       await copyToClipboard(shareUrlFor(share.token));
       setCopied(share.token);
@@ -148,17 +166,14 @@ export default function ShareDialog({ open, onOpenChange, photoId }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="md">
         <DialogHeader>
-          <DialogTitle>Compartir foto</DialogTitle>
+          <DialogTitle>{c.title}</DialogTitle>
           <DialogClose asChild>
             <IconButton aria-label="Cerrar">
               <Icons.Close size={15} />
             </IconButton>
           </DialogClose>
         </DialogHeader>
-        <DialogDescription>
-          Enlaces públicos a esta foto. Cualquiera con la URL podrá verla
-          sin iniciar sesión hasta que la revoques
-        </DialogDescription>
+        <DialogDescription>{c.desc}</DialogDescription>
 
         <DialogBody>
           <div className="grid gap-2">

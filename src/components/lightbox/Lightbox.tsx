@@ -571,7 +571,8 @@ export default function Lightbox({
       <ShareDialog
         open={shareOpen}
         onOpenChange={setShareOpen}
-        photoId={photo.id}
+        kind="photo"
+        id={photo.id}
       />
     </div>
   );

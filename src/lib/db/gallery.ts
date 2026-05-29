@@ -121,6 +121,17 @@ const galleryStmts = {
     ORDER BY p.uploaded_at DESC, p.id DESC
   `),
 
+  // A single live photo by name *iff* it belongs to the given gallery.
+  // Backs the public gallery-share file endpoint: the token grants access
+  // to the gallery, and this guards that the requested file is actually in
+  // it (and not trashed), so the link can't reach photos elsewhere.
+  memberPhotoByName: db.prepare<[number, string], Photo>(`
+    SELECT p.* FROM photos p
+    JOIN photo_galleries pg ON pg.photo_id = p.id
+    WHERE pg.gallery_id = ? AND p.name = ? AND p.deleted_at IS NULL
+    LIMIT 1
+  `),
+
   // Galleries a photo belongs to
   galleriesOfPhoto: db.prepare<[number], Gallery>(`
     SELECT g.*
@@ -152,6 +163,8 @@ export const galleryQueries = {
   list: () => galleryStmts.list.all(),
   listChildren: (parentId: number) => galleryStmts.listChildren.all(parentId),
   photosOf: (galleryId: number) => galleryStmts.photosOf.all(galleryId),
+  memberPhotoByName: (galleryId: number, name: string) =>
+    galleryStmts.memberPhotoByName.get(galleryId, name) ?? null,
   galleriesOfPhoto: (photoId: number) =>
     galleryStmts.galleriesOfPhoto.all(photoId),
 

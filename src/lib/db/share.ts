@@ -57,6 +57,43 @@ const shareStmts = {
   ),
 };
 
+// ──────────────── gallery shares ────────────────
+
+export interface GalleryShare {
+  token: string;
+  gallery_id: number;
+  created_at: number;
+  view_count: number;
+  last_viewed_at: number | null;
+}
+
+export interface GalleryShareWithGallery extends GalleryShare {
+  gallery_slug: string;
+  gallery_name: string;
+}
+
+const galleryShareStmts = {
+  byToken: db.prepare<[string], GalleryShare>(
+    "SELECT * FROM gallery_shares WHERE token = ?",
+  ),
+  listForGallery: db.prepare<[number], GalleryShare>(
+    "SELECT * FROM gallery_shares WHERE gallery_id = ? ORDER BY created_at DESC",
+  ),
+  listAll: db.prepare<[], GalleryShareWithGallery>(`
+    SELECT s.*, g.slug AS gallery_slug, g.name AS gallery_name
+    FROM gallery_shares s
+    JOIN galleries g ON g.id = s.gallery_id
+    ORDER BY s.created_at DESC
+  `),
+  insert: db.prepare<[string, number, number]>(
+    "INSERT INTO gallery_shares (token, gallery_id, created_at) VALUES (?, ?, ?)",
+  ),
+  delete: db.prepare<[string]>("DELETE FROM gallery_shares WHERE token = ?"),
+  incrementView: db.prepare<[number, string]>(
+    "UPDATE gallery_shares SET view_count = view_count + 1, last_viewed_at = ? WHERE token = ?",
+  ),
+};
+
 export const shareQueries = {
   /** Resolve a token to its share row, or null when no longer valid. */
   byToken(token: string): PhotoShare | null {
@@ -102,5 +139,34 @@ export const shareQueries = {
    */
   recordView(token: string): void {
     shareStmts.incrementView.run(Date.now(), token);
+  },
+};
+
+export const galleryShareQueries = {
+  byToken(token: string): GalleryShare | null {
+    return galleryShareStmts.byToken.get(token) ?? null;
+  },
+  listForGallery(galleryId: number): GalleryShare[] {
+    return galleryShareStmts.listForGallery.all(galleryId);
+  },
+  listAll(): GalleryShareWithGallery[] {
+    return galleryShareStmts.listAll.all();
+  },
+  create(token: string, galleryId: number): GalleryShare {
+    const now = Date.now();
+    galleryShareStmts.insert.run(token, galleryId, now);
+    return {
+      token,
+      gallery_id: galleryId,
+      created_at: now,
+      view_count: 0,
+      last_viewed_at: null,
+    };
+  },
+  delete(token: string): boolean {
+    return galleryShareStmts.delete.run(token).changes > 0;
+  },
+  recordView(token: string): void {
+    galleryShareStmts.incrementView.run(Date.now(), token);
   },
 };

@@ -1,0 +1,153 @@
+---
+import Base from "~/layouts/Base.astro";
+import { galleryQueries, galleryShareQueries } from "~/lib/db";
+
+// Public gallery-share landing page. Middleware lets `/sg/*` through
+// without auth; we resolve the token server-side and render the gallery's
+// photos, or a 404 if the token is invalid / revoked.
+
+const token = Astro.params.token;
+const share =
+  typeof token === "string" ? galleryShareQueries.byToken(token) : null;
+const gallery = share ? galleryQueries.byId(share.gallery_id) : null;
+
+if (!share || !gallery) {
+  Astro.response.status = 404;
+} else {
+  // One page render = one view (binary endpoint isn't counted).
+  galleryShareQueries.recordView(share.token);
+}
+
+const photos = gallery ? galleryQueries.photosOf(gallery.id) : [];
+const fileBase = share ? `/files/gallery-share/${share.token}` : "";
+---
+
+<Base title={gallery ? `${gallery.name} · Personal Flickr` : "Enlace no válido"}>
+  <main class="sgallery">
+    {
+      !share || !gallery ? (
+        <div class="sgallery-empty">
+          <h1 class="serif">Enlace no válido</h1>
+          <p>El enlace ya no existe o ha sido revocado.</p>
+        </div>
+      ) : (
+        <>
+          <header class="sgallery-head">
+            <h1 class="serif">{gallery.name}</h1>
+            <p class="sgallery-meta">
+              {photos.length} {photos.length === 1 ? "foto" : "fotos"}
+            </p>
+            {gallery.description && (
+              <p class="sgallery-desc">{gallery.description}</p>
+            )}
+          </header>
+
+          {photos.length === 0 ? (
+            <p class="sgallery-meta">Esta galería está vacía.</p>
+          ) : (
+            <div class="sgallery-grid">
+              {photos.map((p) => (
+                <a
+                  class="sgallery-cell"
+                  href={`${fileBase}/photo/${encodeURIComponent(p.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={p.name}
+                >
+                  <img
+                    src={`${fileBase}/thumb/${encodeURIComponent(p.name)}`}
+                    alt={p.name}
+                    loading="lazy"
+                  />
+                  {p.kind === "video" && <span class="sgallery-vid">▶</span>}
+                </a>
+              ))}
+            </div>
+          )}
+        </>
+      )
+    }
+  </main>
+</Base>
+
+<style>
+  .sgallery {
+    min-height: 100vh;
+    background: var(--bg);
+    padding: clamp(20px, 5vw, 56px);
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .sgallery-empty {
+    min-height: 80vh;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    color: var(--ink-2);
+  }
+  .sgallery-empty h1 {
+    font-size: 28px;
+    margin: 0 0 12px;
+    color: var(--ink);
+  }
+  .sgallery-empty p {
+    margin: 0;
+    color: var(--ink-3);
+  }
+  .sgallery-head {
+    margin-bottom: 28px;
+  }
+  .sgallery-head h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    margin: 0;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .sgallery-meta {
+    margin: 6px 0 0;
+    font: 12px var(--f-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .sgallery-desc {
+    margin: 12px 0 0;
+    max-width: 60ch;
+    color: var(--ink-2);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .sgallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+  .sgallery-cell {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--bg-2);
+    display: block;
+  }
+  .sgallery-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s var(--ease);
+  }
+  .sgallery-cell:hover img {
+    transform: scale(1.04);
+  }
+  .sgallery-vid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    color: #fff;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+  }
+</style>

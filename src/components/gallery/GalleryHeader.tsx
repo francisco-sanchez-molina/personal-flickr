@@ -18,6 +18,7 @@ import {
 import ErrorText from "../ui/ErrorText";
 import IconButton from "../ui/IconButton";
 import TextField from "../ui/TextField";
+import ShareDialog from "../share/ShareDialog";
 
 interface Gallery {
   id: number;
@@ -47,6 +48,7 @@ export default function GalleryHeader({
   const [editing, setEditing] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [name, setName] = useState(gallery.name);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +127,11 @@ export default function GalleryHeader({
       onSelect: () => setMoveOpen(true),
     },
     {
+      label: "Compartir",
+      icon: <Icons.Share size={13} />,
+      onSelect: () => setShareOpen(true),
+    },
+    {
       label: "Eliminar",
       icon: <Icons.Trash size={13} />,
       danger: true,
@@ -145,6 +152,9 @@ export default function GalleryHeader({
         </Button>
         <Button onClick={() => setMoveOpen(true)}>
           <Icons.Folder size={14} /> Mover
+        </Button>
+        <Button onClick={() => setShareOpen(true)}>
+          <Icons.Share size={14} /> Compartir
         </Button>
         <Button onClick={remove} disabled={busy}>
           <Icons.Trash size={14} /> Eliminar
@@ -248,6 +258,14 @@ export default function GalleryHeader({
           // reload so the topbar / hero pick the new context up.
           window.location.reload();
         }}
+      />
+
+      {/* Public share links for the whole gallery (PF-200). */}
+      <ShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        kind="gallery"
+        id={gallery.id}
       />
     </>
   );

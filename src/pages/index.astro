@@ -10,6 +10,7 @@ import EmptyState from "~/components/ui/EmptyState.astro";
 import SectionHead from "~/components/ui/SectionHead.astro";
 import {
   galleryQueries,
+  galleryShareQueries,
   photoQueries,
   runSmartFilter,
   search as dbSearch,
@@ -73,6 +74,7 @@ let smartAlbumDetail: { id: number; name: string; filter: SmartFilter } | null =
 
 // Share rows (only used for view === "shares")
 let shares: ReturnType<typeof shareQueries.listAll> = [];
+let galleryShares: ReturnType<typeof galleryShareQueries.listAll> = [];
 
 // Trash rows (only used for view === "trash")
 let trash: ReturnType<typeof photoQueries.listTrash> = [];
@@ -100,6 +102,7 @@ if (view === "search") {
   }));
 } else if (view === "shares") {
   shares = shareQueries.listAll();
+  galleryShares = galleryShareQueries.listAll();
 } else if (view === "trash") {
   trash = photoQueries.listTrash();
 } else if (view === "smart") {
@@ -278,11 +281,15 @@ function relativeTime(ts: number): string {
             title="Compartidas"
           >
             <span slot="actions" class="count-chip">
-              {shares.length}{" "}
-              {shares.length === 1 ? "enlace" : "enlaces"}
+              {shares.length + galleryShares.length}{" "}
+              {shares.length + galleryShares.length === 1 ? "enlace" : "enlaces"}
             </span>
           </SectionHead>
-          <SharesManager client:load initial={shares} />
+          <SharesManager
+            client:load
+            initial={shares}
+            galleryInitial={galleryShares}
+          />
         </section>
       ) : view === "trash" ? (
         <section>

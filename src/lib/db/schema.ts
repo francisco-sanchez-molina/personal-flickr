@@ -210,3 +210,21 @@ db.exec(`
 // the number).
 addColumnIfMissing("photo_shares", "view_count", "INTEGER NOT NULL DEFAULT 0");
 addColumnIfMissing("photo_shares", "last_viewed_at", "INTEGER");
+
+// ──────────────── gallery shares (public, no-auth links) ────────────────
+//
+// Same shape + semantics as photo_shares, but the token grants read-only
+// access to a whole gallery (`/sg/:token`). Photos are served through a
+// token-scoped endpoint that checks gallery membership, so the link can't
+// be used to reach photos outside the gallery.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS gallery_shares (
+    token          TEXT PRIMARY KEY,
+    gallery_id     INTEGER NOT NULL REFERENCES galleries(id) ON DELETE CASCADE,
+    created_at     INTEGER NOT NULL,
+    view_count     INTEGER NOT NULL DEFAULT 0,
+    last_viewed_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_gallery_shares_gallery
+    ON gallery_shares(gallery_id, created_at DESC);
+`);

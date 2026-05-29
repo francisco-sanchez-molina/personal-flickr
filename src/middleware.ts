@@ -10,7 +10,12 @@ const PUBLIC_PATHS = new Set(["/login", "/api/auth/login"]);
  * The token IS the capability; the DB lookup happens inside each
  * route, so an invalid token returns 404 from there.
  */
-const PUBLIC_PREFIXES = ["/s/", "/files/share/"];
+const PUBLIC_PREFIXES = [
+  "/s/",
+  "/files/share/",
+  "/sg/",
+  "/files/gallery-share/",
+];
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
