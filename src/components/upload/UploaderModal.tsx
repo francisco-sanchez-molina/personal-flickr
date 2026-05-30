@@ -17,7 +17,14 @@ interface CurrentGallery {
 }
 
 function readCurrentGallery(): CurrentGallery | null {
-  if (typeof window === "undefined") return null;
+  if (typeof document === "undefined") return null;
+  // Prefer the body dataset — it's set at SSR time and survives any race
+  // with the inline `window.__currentGallery` script during hydration.
+  const ds = document.body.dataset;
+  const id = ds.galleryId ? Number(ds.galleryId) : NaN;
+  if (Number.isInteger(id) && id > 0 && ds.galleryName) {
+    return { id, name: ds.galleryName };
+  }
   const g = (window as unknown as { __currentGallery?: CurrentGallery })
     .__currentGallery;
   return g ?? null;
@@ -30,7 +37,15 @@ function readCurrentGallery(): CurrentGallery | null {
  */
 export default function UploaderModal() {
   const [open, setOpen] = useState(false);
-  const currentGallery = readCurrentGallery();
+  // Re-read on every open so the modal always reflects the current page's
+  // gallery context, not whatever was true at first hydration.
+  const [currentGallery, setCurrentGallery] = useState<CurrentGallery | null>(
+    null,
+  );
+
+  useEffect(() => {
+    setCurrentGallery(readCurrentGallery());
+  }, [open]);
 
   // Open on custom event
   useEffect(() => {

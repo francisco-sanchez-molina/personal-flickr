@@ -97,11 +97,14 @@ const username = Astro.locals.user?.username ?? null;
       }
     </script>
   </head>
-  <body>
+  <body
+    data-gallery-id={currentGallery?.id}
+    data-gallery-name={currentGallery?.name}
+  >
     {
       currentGallery && (
         <script is:inline define:vars={{ g: currentGallery }}>
-          {`window.__currentGallery = ${JSON.stringify(currentGallery)};`}
+          {`window.__currentGallery = ${JSON.stringify(g)};`}
         </script>
       )
     }
